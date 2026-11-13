@@ -6,30 +6,496 @@
 <meta name="theme-color" content="#071d35" />
 <title>小鲸鱼的数通小剧场：ARP 寻址与广播风暴</title>
 <style>
-:root{--ink:#10243d;--muted:#557089;--paper:#f5f9fb;--white:#fff;--deep:#071d35;--deep-2:#0d3152;--blue:#1d6fa5;--mint:#31c7a1;--mint-dark:#087968;--yellow:#ffc95a;--coral:#ff816f;--line:#d8e6ed;--soft-blue:#e8f3f8;--soft-mint:#e4f7f1;--soft-yellow:#fff3d6;--font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;color:var(--ink);background:var(--paper);font-family:var(--font);font-size:16px;line-height:1.75}button{font:inherit}a{color:inherit}:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
-.topbar{position:sticky;top:0;z-index:20;min-height:64px;background:rgba(7,29,53,.96);color:white;display:flex;align-items:center;justify-content:space-between;padding:0 max(22px,calc((100% - 1180px)/2));border-bottom:1px solid rgba(255,255,255,.13);gap:15px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.02em}.brand-mark{width:31px;height:31px;border-radius:10px;background:var(--mint);display:grid;place-items:center;color:var(--deep);font-weight:900}.nav{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}.nav a{font-size:13px;text-decoration:none;color:#c9d9e5;padding:8px 10px;border-radius:8px;min-height:44px;display:grid;place-items:center}.nav a:hover{background:#164466;color:white}
-.hero{background:var(--deep);color:#f8fcff;overflow:hidden;position:relative}.hero:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 25%,rgba(49,199,161,.18),transparent 28%),radial-gradient(circle at 20% 0%,rgba(43,114,165,.25),transparent 32%);pointer-events:none}.hero-inner{max-width:1180px;margin:auto;padding:74px 24px 58px;position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(390px,.95fr);gap:48px;align-items:center}.kicker{font-weight:800;color:var(--yellow);font-size:14px;letter-spacing:.08em;margin-bottom:12px}.hero h1{font-size:clamp(34px,5vw,64px);line-height:1.15;letter-spacing:-.035em;margin:0 0 22px;max-width:680px;text-wrap:balance}.hero h1 span{color:var(--mint);white-space:nowrap}.hero-lede{font-size:19px;line-height:1.75;color:#c7d9e6;max-width:600px;margin:0 0 26px}.demo-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px}.primary{background:var(--mint);color:#073a39;border:0;border-radius:10px;padding:12px 18px;font-weight:850;cursor:pointer;min-height:46px;box-shadow:0 5px 0 #16856f;transition:transform .15s,box-shadow .15s}.primary:hover{transform:translateY(-2px);box-shadow:0 7px 0 #16856f}.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #16856f}.secondary{border:1px solid #6b91a6;background:transparent;color:#e0f2f7;border-radius:10px;padding:11px 15px;cursor:pointer;min-height:46px}.secondary:hover{background:#163f5e}.status{font-size:14px;color:#c5dce8}.pulse-dot{width:9px;height:9px;background:var(--mint);border-radius:50%;box-shadow:0 0 0 6px rgba(49,199,161,.14);display:inline-block;margin-right:8px}
-.arp-screen{background:#0c2a48;border:1px solid rgba(164,220,229,.25);border-radius:24px;padding:22px;box-shadow:0 22px 65px rgba(0,0,0,.24);position:relative}.station-head{display:flex;justify-content:space-between;color:#b7ccda;font-size:13px;margin-bottom:18px}.lan{background:#071a2d;border-radius:16px;border:1px solid rgba(164,220,229,.15);padding:18px 15px 15px;position:relative;min-height:310px;overflow:hidden}.lan-label{font-size:12px;color:#89afc2;border-bottom:1px solid rgba(164,220,239,.16);padding-bottom:9px;margin-bottom:22px}.switch{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:112px;height:70px;border:2px solid #5c9db6;background:#164466;border-radius:15px;display:grid;place-items:center;color:#e6fbff;font-weight:800;z-index:3}.switch small{display:block;color:#9dd9dd;font-size:11px;font-weight:500}.cable{position:absolute;height:2px;background:#4c88a4;transform-origin:left center;z-index:1}.c1{left:23%;top:43%;width:27%;transform:rotate(10deg)}.c2{left:50%;top:43%;width:28%;transform:rotate(-9deg)}.c3{left:45%;top:51%;width:25%;transform:rotate(57deg)}.c4{left:50%;top:51%;width:25%;transform:rotate(123deg)}.lan-node{position:absolute;z-index:4;text-align:center;font-size:11px;color:#c1dce9;transition:transform .3s,opacity .3s}.lan-node .node-icon{width:42px;height:42px;border-radius:12px;background:#d4ebf7;border:2px solid #70b5c8;display:grid;place-items:center;margin:auto;color:#1d6fa5}.lan-node svg{width:28px;height:28px}.lan-node.pc1{left:7%;top:26%}.lan-node.pc2{right:7%;top:25%}.lan-node.pc3{left:8%;bottom:12%}.lan-node.pc4{right:8%;bottom:12%}.lan-node.target .node-icon{background:#c9f0e5;border-color:var(--mint)}.lan-node.muted{opacity:.4}.lan-node.hit{transform:translateY(-5px)}.lan-node .cross{display:none;position:absolute;left:50%;top:8px;transform:translateX(-50%);font-size:34px;line-height:42px;color:#d85c4d;font-weight:900;text-shadow:0 2px #fff}.lan-node.muted .cross{display:block}.broadcast{position:absolute;left:50%;top:45%;width:0;height:0;border-radius:50%;border:3px solid var(--yellow);opacity:0;transform:translate(-50%,-50%);z-index:2}.broadcast.on{animation:arp-pulse 1.2s ease-out 2}.reply-line{position:absolute;left:50%;top:47%;width:0;height:3px;background:var(--mint);opacity:0;z-index:2}.reply-line.on{width:34%;opacity:1;transition:width .7s ease}.cache-light{position:absolute;right:12px;top:12px;width:10px;height:10px;border-radius:50%;background:#5a7990}.cache-light.on{background:var(--mint);box-shadow:0 0 0 5px rgba(49,199,161,.16)}
-@keyframes arp-pulse{0%{width:0;height:0;opacity:.9}100%{width:470px;height:470px;opacity:0}}
-.log{margin-top:18px;display:grid;gap:7px}.log-row{display:flex;align-items:flex-start;gap:9px;color:#a9c0ce;font-size:13px;line-height:1.45}.log-row b{color:#f6fbff;font-weight:600}.log-dot{width:7px;height:7px;border-radius:50%;background:#5a7990;flex:none;margin-top:8px}.log-row.live .log-dot{background:var(--mint)}
-main{max-width:1180px;margin:0 auto;padding:26px 24px 70px}.section{padding:62px 0 24px}.section-head{display:grid;grid-template-columns:150px minmax(0,1fr);gap:26px;align-items:start;margin-bottom:26px}.chapter{border-top:3px solid var(--blue);padding-top:10px}.section h2{font-size:clamp(27px,4vw,43px);line-height:1.2;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}.section-intro{margin:0;color:var(--muted);max-width:700px;line-height:1.8}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.panel{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:23px}.panel.soft-blue{background:var(--soft-blue)}.panel.soft-mint{background:var(--soft-mint)}.panel.soft-yellow{background:var(--soft-yellow)}.panel h3{font-size:20px;line-height:1.35;margin:0 0 10px}.panel p{margin:0;color:var(--muted);line-height:1.75}.tag{display:inline-flex;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:750;background:#e1edf3;color:#2f5b76;margin-bottom:12px}.tag.mint{background:#c9f0e5;color:#056b5e}.tag.yellow{background:#ffe8aa;color:#856000}.tag.coral{background:#ffe0da;color:#94402f}
-.comic{position:relative;overflow:hidden}.comic:after{content:"";position:absolute;right:18px;top:18px;width:80px;height:80px;border:1px dashed rgba(39,109,148,.22);border-radius:50%}.scene{min-height:285px;border-radius:15px;background:#eaf5f8;border:1px solid #cfe6eb;position:relative;overflow:hidden;margin-bottom:15px;display:flex;flex-direction:column}.stage{position:relative;flex:1 1 auto;min-height:210px}.scene.dark{background:#0c2b48;border-color:#235071;color:white}.scene-caption{position:static;flex:0 0 auto;padding:0 15px 13px;font-size:13px;color:#4e7086}.scene.dark .scene-caption{color:#b3cfdd}.bubble{position:absolute;background:white;border:2px solid #afd5df;border-radius:16px;padding:8px 12px;font-weight:700;font-size:14px;line-height:1.4;box-shadow:0 6px 0 rgba(30,105,140,.08);z-index:5}.bubble:after{content:"";position:absolute;bottom:-8px;left:22px;border:8px solid transparent;border-top-color:#afd5df;border-bottom:0}.bubble.yellow{background:#fff1bf;border-color:#e5bd4b;color:var(--ink)}.bubble.yellow:after{border-top-color:#e5bd4b}.actor{position:absolute;display:grid;justify-items:center;gap:5px;font-weight:800;font-size:13px;color:#1c5673;z-index:4}.actor.dark-text{color:#e7f7ff}.actor-icon{width:59px;height:59px;border-radius:19px;display:grid;place-items:center;border:3px solid currentColor;background:#d6f3ee}.actor-icon.pc{background:#d4ebf7;border-radius:11px}.actor-icon.switch{background:#bcdff2;border-radius:14px}.actor-icon.whale{background:#c9f0e5;border-radius:50%}.actor-icon.svg-icon svg{width:42px;height:42px}.actor.pc1{left:9%;bottom:29px}.actor.pc2{right:9%;bottom:29px}.actor.pc3{left:42%;bottom:29px}.actor.pc4{right:5%;top:47px}.actor.sw{left:43%;top:111px}.ether{position:absolute;left:13%;right:13%;top:142px;height:2px;background:#72b4c3}.ether:before,.ether:after{content:"";position:absolute;width:8px;height:8px;border-radius:50%;background:var(--mint);top:-3px}.ether:before{left:0}.ether:after{right:0}.broadcast-wave{position:absolute;left:50%;top:131px;width:150px;height:36px;border:3px solid var(--yellow);border-bottom:0;border-radius:80px 80px 0 0;transform:translateX(-50%);opacity:.9}.mac-pill{position:absolute;left:50%;top:82px;transform:translateX(-50%);background:#fff1bf;border:1px solid #e5bd4b;color:#785600;border-radius:8px;padding:4px 8px;font-family:ui-monospace,monospace;font-size:12px;white-space:nowrap;z-index:5}.reply-arrow{position:absolute;left:51%;top:115px;width:28%;height:3px;background:var(--mint);transform:rotate(-18deg);transform-origin:left center}.reply-arrow:after{content:"";position:absolute;right:-1px;top:-5px;border:6px solid transparent;border-left-color:var(--mint)}.drop{position:absolute;left:22%;top:122px;color:#d85c4d;font-weight:900;font-size:26px}.cache-card{position:relative;right:auto;top:auto;width:100%;margin:0 0 16px;background:white;border:1px solid #acd8d6;border-radius:12px;padding:10px 12px;color:#295a66;font-family:ui-monospace,monospace;font-size:12px;box-shadow:0 7px 20px rgba(7,45,66,.12)}.cache-card b{display:block;color:var(--mint-dark);font-family:var(--font);font-size:13px;margin-bottom:4px}.cache-card .new{background:#e2f8f1;border-radius:5px;padding:2px 4px}.notebook{position:absolute;left:9%;top:48px;width:42%;height:144px;background:#fff8e1;border:2px solid #e5bd4b;border-radius:9px;transform:rotate(-3deg);padding:15px 16px;color:#785600;font-family:ui-monospace,monospace;font-size:12px;box-shadow:4px 7px 0 rgba(183,135,35,.12)}.notebook:before{content:"ARP 备忘录";display:block;font-family:var(--font);font-weight:800;font-size:14px;margin-bottom:8px}.age{display:flex;justify-content:space-between;margin-top:8px;color:#9e7b2a}.storm-stage{background:#0b243c;position:relative;inset:auto;height:210px;flex:none}.storm-switch{position:absolute;top:48%;width:92px;height:58px;border-radius:12px;background:#174a68;border:2px solid #67b9c1;display:grid;place-items:center;color:white;font-weight:800;z-index:3}.storm-switch.a{left:20%}.storm-switch.b{right:20%}.loop-wire{position:absolute;left:25%;right:25%;top:28%;height:45%;border:4px solid #ff816f;border-radius:50%;box-shadow:0 0 0 7px rgba(255,129,111,.15);z-index:1}.storm-packet{position:absolute;width:14px;height:14px;background:var(--yellow);border-radius:50%;box-shadow:0 0 12px var(--yellow)}.p1{left:27%;top:31%}.p2{left:68%;top:68%}.p3{left:68%;top:31%}.p4{left:27%;top:68%}.storm-label{position:absolute;left:50%;top:15px;transform:translateX(-50%);background:#ffe0da;color:#94402f;border-radius:8px;padding:5px 11px;font-weight:800;font-size:13px;white-space:nowrap}.mini-row{display:grid;grid-template-columns:1.2fr .8fr 1fr;gap:8px;padding:9px 11px;border-bottom:1px solid #e0edf1;background:rgba(255,255,255,.45)}.mini-row:last-child{border-bottom:0}.mini-row.head{background:#eff7fa;color:#4a7184;font-weight:700;font-size:12px}.mini-row.highlight{background:#e2f8f1;color:#086e60;font-weight:750}.danger-note{display:flex;gap:12px;align-items:flex-start;background:#fff0ec;border:1px solid #ffd0c7;border-radius:14px;padding:15px;margin-top:15px}.danger-mark{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#c64f3d;color:white;font-weight:900;flex:none}.footer{background:var(--deep);color:#b9cfdd;padding:40px 24px}.footer-inner{max-width:1180px;margin:auto;display:flex;justify-content:space-between;gap:24px;align-items:flex-end}.footer strong{color:white;font-size:18px}.footer p{margin:7px 0 0;font-size:14px}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px}.legend span{display:flex;align-items:center;gap:6px}.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}.legend .broadcast-dot{background:var(--yellow)}.legend .reply-dot{background:var(--mint)}.legend .storm-dot{background:var(--coral)}
-@media(max-width:800px){.topbar{padding:10px 16px;gap:8px;align-items:flex-start}.nav a{padding:7px 6px;font-size:12px}.hero-inner{grid-template-columns:1fr;padding:54px 18px 38px;gap:26px}.hero h1{font-size:39px}.hero-lede{font-size:17px}.arp-screen{padding:15px}.section{padding-top:44px}.section-head{grid-template-columns:1fr;gap:8px}.chapter{padding:10px 0 0}.grid-2{grid-template-columns:1fr}.footer-inner{display:block}.legend{margin-top:20px}.scene{min-height:300px}.stage{min-height:225px}}
-@media(max-width:480px){body{font-size:15px}.brand{font-size:13px}.nav{gap:0}.nav a:nth-child(3),.nav a:nth-child(4){display:none}.hero h1{font-size:34px}.hero-inner{padding-left:16px;padding-right:16px}.lan{min-height:290px;padding-left:8px;padding-right:8px}.switch{width:86px;height:58px;font-size:13px}.lan-node{font-size:10px}.lan-node .node-icon{width:36px;height:36px}.lan-node svg{width:24px;height:24px}.c1{left:22%;width:27%}.c2{width:27%}.cache-card,.notebook{width:48%;font-size:10px;padding:9px}.cache-card b,.notebook:before{font-size:12px}.scene-caption{font-size:12px}.panel{padding:18px}.bubble{font-size:12px;max-width:180px}.actor{font-size:11px}.actor-icon{width:48px;height:48px}.actor-icon.svg-icon svg{width:34px;height:34px}.storm-switch{width:70px;height:48px;font-size:11px}.storm-switch.a{left:12%}.storm-switch.b{right:12%}.loop-wire{left:19%;right:19%}}
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}.primary:hover{transform:none}}
+:root{
+  --ink:#10243d;--muted:#557089;--paper:#f5f9fb;--white:#fff;--deep:#071d35;--deep-2:#0d3152;
+  --blue:#1d6fa5;--mint:#31c7a1;--mint-dark:#087968;--yellow:#ffc95a;--coral:#ff816f;--line:#d8e6ed;
+  --soft-blue:#e8f3f8;--soft-mint:#e4f7f1;--soft-yellow:#fff3d6;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);background:var(--paper);font-family:var(--font);font-size:16px;line-height:1.75;overflow-x:hidden}
+button{font:inherit}a{color:inherit}:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+.topbar{position:sticky;top:0;z-index:20;min-height:64px;background:rgba(7,29,53,.96);backdrop-filter:blur(8px);color:white;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px max(22px,calc((100% - 1180px)/2));border-bottom:1px solid rgba(255,255,255,.13)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.02em;white-space:nowrap;flex-shrink:0}
+.brand-mark{width:31px;height:31px;border-radius:10px;background:var(--mint);display:grid;place-items:center;color:var(--deep);font-weight:900;flex-shrink:0}
+.nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.nav a{font-size:14px;text-decoration:none;color:#c9d9e5;padding:8px 11px;border-radius:8px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;transition:background .15s,color .15s}
+.nav a:hover{background:#164466;color:white}
+.nav a.nav-pill{background:rgba(49,199,161,.15);color:#8af0d5;border:1px solid rgba(49,199,161,.32)}
+.nav a.nav-pill:hover{background:rgba(49,199,161,.26);color:white}
+.hero{background:var(--deep);color:#f8fcff;overflow:hidden;position:relative}
+.hero:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 25%,rgba(49,199,161,.18),transparent 28%),radial-gradient(circle at 20% 0%,rgba(45,146,204,.22),transparent 38%);pointer-events:none}
+.hero-inner{position:relative;max-width:1180px;margin:auto;padding:64px 24px 56px;display:grid;grid-template-columns:1fr 1.15fr;gap:38px;align-items:center}
+.kicker{color:var(--yellow);font-size:14px;font-weight:700;margin-bottom:14px}
+.hero h1{font-size:clamp(34px,4.6vw,58px);line-height:1.15;letter-spacing:-.03em;margin:0 0 20px;max-width:600px;text-wrap:balance}
+.hero h1 span{color:var(--mint);white-space:nowrap}
+.hero-lede{color:#d3e5ee;font-size:18px;max-width:540px;margin:0 0 28px}
+.demo-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.primary,.secondary{min-height:48px;border-radius:10px;padding:0 20px;cursor:pointer;font-weight:850;transition:transform .15s,background .15s}
+.primary{background:var(--mint);color:#073a39;border:0}.primary:hover{background:#47dab3;transform:translateY(-1px)}
+.secondary{background:transparent;color:#d6e9f2;border:1px solid rgba(255,255,255,.35)}.secondary:hover{background:rgba(255,255,255,.08)}
+.status{color:#d6e9f2;font-size:14px;display:inline-flex;align-items:center;gap:8px}
+.status::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--mint);flex:none}
+.station{background:#0c2a48;border:1px solid rgba(164,220,229,.22);border-radius:20px;padding:18px 20px}
+.station-head{display:flex;justify-content:space-between;align-items:center;color:#9cc2d5;font-size:13px;margin-bottom:10px;gap:10px}
+.stage-badge{padding:2px 10px;border-radius:999px;background:#13395e;border:1px solid rgba(164,220,229,.24);color:#cde8f5;font-size:12px;font-weight:700;white-space:nowrap}
+.stage-badge.live{background:#12443c;border-color:rgba(49,199,161,.55);color:#73f2cd}
+.station-screen{background:#071a2d;border:1px solid rgba(164,220,229,.18);border-radius:14px;padding:12px 14px 14px}
+.topo-svg{width:100%;height:auto;display:block}
+.packet-label{font-size:13px;color:#d5e5ed;text-align:center;margin:8px 0 2px}.packet-label strong{color:var(--yellow);font-size:15px}
+.log{border-top:1px solid rgba(255,255,255,.12);padding-top:10px;margin-top:8px;display:grid;gap:6px}
+.log-row{display:flex;gap:10px;align-items:flex-start;color:#c2d9e6;font-size:13px;line-height:1.45}.log-row b{color:#f6fbff;font-weight:600;white-space:nowrap;flex-shrink:0}
+.log-dot{width:7px;height:7px;border-radius:50%;background:#5a7990;flex:none;margin-top:6px}.log-row.live .log-dot{background:var(--mint)}
+.cache-bar{margin-top:10px;padding:9px 12px;border-radius:10px;background:#0f2e4d;border:1px solid rgba(164,220,229,.2);display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:#a7c5d8;font-family:var(--mono);transition:all .25s ease}
+.cache-bar.lit{background:#12443c;border-color:#31c7a1;color:#d7fff3}.cache-bar b{color:#fff;font-family:var(--font)}
+.lan-link{stroke:#2a5273;stroke-width:3;stroke-linecap:round;transition:stroke .25s ease,stroke-width .25s ease}
+.lan-link.req{stroke:var(--yellow);stroke-width:4}.lan-link.rep{stroke:var(--mint);stroke-width:4.5}.lan-link.dim{stroke:#1d3b54;stroke-width:2.5}
+.lan-node-box{fill:#143c5e;stroke:#477a9b;stroke-width:2;transition:fill .25s,stroke .25s}
+.lan-node.active .lan-node-box{fill:#1a4f78;stroke:#ffc95a}.lan-node.hit .lan-node-box{fill:#114a42;stroke:var(--mint);stroke-width:2.5}.lan-node.dim .lan-node-box{fill:#0e2a43;stroke:#294964}.lan-node.dim text{opacity:.55}
+.drop-tag{opacity:0;visibility:hidden;transition:opacity .25s ease}.drop-tag.show{opacity:1;visibility:visible}
+#arpPackets g{transition:transform .5s cubic-bezier(.4,0,.2,1),opacity .2s ease}
+main{max-width:1180px;margin:0 auto;padding:24px 24px 70px}.section{padding:56px 0 22px}
+.section-head{display:grid;grid-template-columns:150px minmax(0,1fr);gap:26px;align-items:start;margin-bottom:24px}
+.chapter{border-top:3px solid var(--blue);padding-top:10px;font-weight:700;color:var(--ink)}
+.section h2{font-size:clamp(26px,3.8vw,42px);line-height:1.2;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
+.section-intro{margin:0;color:var(--muted);max-width:680px;line-height:1.8}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column}
+.panel.soft-blue{background:var(--soft-blue)}.panel.soft-mint{background:var(--soft-mint)}.panel.soft-yellow{background:var(--soft-yellow)}
+.panel h3{font-size:20px;line-height:1.35;margin:0 0 10px}.panel p{margin:0;color:var(--muted);line-height:1.75}
+.tag{display:inline-flex;align-self:flex-start;border-radius:999px;padding:4px 11px;font-size:13px;font-weight:750;background:#e1edf3;color:#2f5b76;margin-bottom:12px}
+.tag.mint{background:#c9f0e5;color:#056b5e}.tag.yellow{background:#ffe8aa;color:#856000}.tag.coral{background:#ffe0da;color:#94402f}
+.scene{border-radius:15px;background:#eaf5f8;border:1px solid #cfe6eb;overflow:hidden;margin-bottom:16px;display:flex;flex-direction:column}
+.scene.dark{background:#0c2b48;border-color:#235071;color:white}.scene-svg{width:100%;height:auto;display:block}
+.scene-caption{padding:10px 15px 12px;font-size:13px;color:#4e7086;border-top:1px solid rgba(30,105,140,.1);background:rgba(255,255,255,.45)}
+.scene.dark .scene-caption{color:#b3cfdd;border-top-color:rgba(164,220,229,.12);background:rgba(7,26,45,.42)}
+.mini-table{font-size:14px;border:1px solid #c9dfe7;border-radius:12px;overflow:hidden;background:white;margin:8px 0 14px}
+.mini-row{display:grid;grid-template-columns:.8fr 1.2fr 1fr;gap:8px;padding:10px 12px;border-bottom:1px solid #e0edf1}
+.mini-row:last-child{border-bottom:0}.mini-row.head{background:#eff7fa;color:#4a7184;font-weight:700;font-size:12px}.mini-row.highlight{background:#e2f8f1;color:#086e60;font-weight:750}
+.cache-card{border-radius:14px;border:1px solid #c8e0e8;background:#f7fbfd;padding:14px 16px;font-family:var(--mono);font-size:14px;line-height:1.9;margin-bottom:14px}
+.cache-card-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--font);font-weight:800;font-size:13px;color:#2f5b76;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid #d9e8ee}
+.cache-entry{display:flex;justify-content:space-between;padding:4px 8px;border-radius:7px}.cache-entry.new{background:#dff6ee;color:#076a5c;font-weight:800}
+.answer{margin-top:auto;padding-top:14px}
+.answer-box{border-radius:12px;padding:12px 14px;background:#f3f8fa;border:1px solid #dce9ef;color:#345970;font-size:14px;line-height:1.65}
+.answer-box.mint{background:#eaf7f4;border-color:#c6e9df}.answer-box.yellow{background:#fff8e6;border-color:#f3dea5;color:#6c5012}.answer-box strong{color:var(--ink)}
+.pitfall{display:flex;gap:12px;align-items:flex-start;background:#fff0ec;border:1px solid #ffd0c7;border-radius:14px;padding:15px;margin-bottom:12px}
+.pitfall-mark{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#c64f3d;color:white;font-weight:900;flex:none}
+.pitfall.ok{background:#eaf7f4;border-color:#c6e9df}.pitfall.ok .pitfall-mark{background:var(--mint-dark)}
+.footer{background:var(--deep);color:#b9cfdd;padding:40px 24px}.footer-inner{max-width:1180px;margin:auto;display:flex;justify-content:space-between;gap:24px;align-items:flex-end}
+.footer strong{color:white;font-size:18px}.footer p{margin:7px 0 0;font-size:14px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px}.legend span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}.legend .req{background:var(--yellow)}.legend .rep{background:var(--mint)}.legend .storm{background:var(--coral)}
+@media(max-width:960px){.hero-inner{grid-template-columns:1fr;padding:48px 20px 38px;gap:28px}.section-head{grid-template-columns:1fr;gap:8px}.chapter{padding:8px 0 0}}
+@media(max-width:760px){.topbar{flex-direction:column;align-items:flex-start;padding:10px 16px;gap:8px}.nav{width:100%;justify-content:flex-start;gap:6px}.nav a{padding:6px 10px;font-size:13px;min-height:36px}.grid-2{grid-template-columns:1fr}.footer-inner{display:block}.legend{margin-top:18px}}
+@media(max-width:480px){body{font-size:15px}.hero-inner{padding:38px 16px 34px}.hero h1{font-size:32px}.hero-lede{font-size:16px}.station{padding:14px}.station-screen{padding:10px 8px 12px}main{padding:18px 16px 56px}.section{padding:40px 0 16px}.panel{padding:17px}.scene-caption{font-size:12px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}.primary:hover{transform:none}}
 </style>
 </head>
 <body>
-<header class="topbar"><div class="brand"><span class="brand-mark">鲸</span><span>小鲸鱼的数通小剧场</span></div><nav class="nav" aria-label="章节导航"><a href="index.html">第一弹：路由与下一跳</a><a href="#broadcast">广播喊话</a><a href="#cache">ARP 缓存</a><a href="#storm">广播风暴</a></nav></header>
-<section class="hero" id="demo"><div class="hero-inner"><div><div class="kicker">接上第一弹：下一跳的地址已经知道了</div><h1>ARP 怎么把 IP 找成<span> MAC 车牌？</span></h1><p class="hero-lede">当 PC1 知道下一跳是 192.168.1.2，却还不知道它的物理车牌，就要在局域网里大声问一句：谁是它？</p><div class="demo-controls"><button class="primary" id="broadcastBtn">大喇叭广播喊话</button><button class="secondary" id="resetBtn">重新演练</button><span class="status" id="demoStatus"><span class="pulse-dot"></span>广播包还没出发</span></div></div><div class="arp-screen" aria-label="ARP 广播与单播演示"><div class="station-head"><span>局域网 · ARP 实时演练</span><span id="arpStep">待机</span></div><div class="lan"><div class="lan-label">192.168.1.0/24 · 同一片局域网</div><div class="broadcast" id="broadcastWave"></div><div class="reply-line" id="replyLine"></div><div class="cable c1"></div><div class="cable c2"></div><div class="cable c3"></div><div class="cable c4"></div><div class="switch">交换机<small>只看端口，不看 IP</small></div><div class="lan-node pc1"><div class="node-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div>PC1<small>发起者</small></div><div class="lan-node pc2 target" id="targetNode"><div class="node-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div>PC2<small>192.168.1.2</small></div><div class="lan-node pc3 muted" id="node3"><div class="cross">×</div><div class="node-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div>PC3</div><div class="lan-node pc4 muted" id="node4"><div class="cross">×</div><div class="node-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div>PC4</div><div class="cache-light" id="cacheLight"></div></div><div class="log" id="arpLog"><div class="log-row live"><i class="log-dot"></i><b>等待喊话：</b>PC1 准备查询 192.168.1.2</div><div class="log-row"><i class="log-dot"></i><span>目标 MAC 先写成 FF:FF:FF:FF:FF:FF</span></div></div></div></div></section>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">鲸</span><span>小鲸鱼的数通小剧场</span></div>
+  <nav class="nav" aria-label="章节导航">
+    <a class="nav-pill" href="index.html">第一弹：路由与下一跳</a>
+    <a href="#broadcast">广播</a>
+    <a href="#reply">单播</a>
+    <a href="#cache">缓存</a>
+    <a href="#storm">风暴</a>
+  </nav>
+</header>
+<section class="hero" id="demo">
+  <div class="hero-inner">
+    <div>
+      <div class="kicker">第二弹 · 给已经知道下一跳的你</div>
+      <h1>ARP 怎么把 IP <span>找成 MAC 车牌？</span></h1>
+      <p class="hero-lede">路由器查表知道下一跳 IP 是 192.168.1.2，但网线和交换机只认 MAC 车牌。不知道对方车牌，就在局域网拿大喇叭喊一声。</p>
+      <div class="demo-controls">
+        <button class="primary" id="broadcastBtn">大喇叭广播喊话</button>
+        <button class="secondary" id="resetArpBtn">重新看一遍</button>
+        <span class="status" id="arpStatus" aria-live="polite">待机：PC1 准备查询 192.168.1.2</span>
+      </div>
+    </div>
+    <div class="station" aria-label="局域网 ARP 实时演练">
+      <div class="station-head">
+        <span>局域网 · ARP 实时演练</span>
+        <span class="stage-badge" id="arpStageTag">待机</span>
+      </div>
+      <div class="station-screen">
+        <svg class="topo-svg" viewBox="0 0 600 285" role="img" aria-label="交换机与四台主机星型拓扑">
+          <line id="link1" class="lan-link" x1="100" y1="62" x2="300" y2="138"/>
+          <line id="link2" class="lan-link" x1="500" y1="62" x2="300" y2="138"/>
+          <line id="link3" class="lan-link" x1="100" y1="212" x2="300" y2="138"/>
+          <line id="link4" class="lan-link" x1="500" y1="212" x2="300" y2="138"/>
+          <g transform="translate(300,138)">
+            <rect x="-64" y="-26" width="128" height="52" rx="12" fill="#133d61" stroke="#5aa1c2" stroke-width="2"/>
+            <text x="0" y="-4" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="800">交换机</text>
+            <text x="0" y="14" text-anchor="middle" fill="#9bc2d6" font-size="10.5">只看端口 · 不看 IP</text>
+          </g>
+          <g class="lan-node active" id="nodePc1" transform="translate(100,62)">
+            <rect class="lan-node-box" x="-26" y="-22" width="52" height="44" rx="11"/>
+            <rect x="-13" y="-12" width="26" height="17" rx="2" fill="none" stroke="#9ee9ff" stroke-width="2"/>
+            <path d="M-7 10h14M0 5v5" stroke="#9ee9ff" stroke-width="2" stroke-linecap="round"/>
+            <text x="0" y="37" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">PC1 · 发起者</text>
+            <text x="0" y="52" text-anchor="middle" fill="#9ebcd0" font-size="10.5" font-family="ui-monospace,monospace">192.168.1.1</text>
+          </g>
+          <g class="lan-node" id="nodePc2" transform="translate(500,62)">
+            <rect class="lan-node-box" x="-26" y="-22" width="52" height="44" rx="11"/>
+            <rect x="-13" y="-12" width="26" height="17" rx="2" fill="none" stroke="#9ee9ff" stroke-width="2"/>
+            <path d="M-7 10h14M0 5v5" stroke="#9ee9ff" stroke-width="2" stroke-linecap="round"/>
+            <text x="0" y="37" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">PC2 · 目标机</text>
+            <text x="0" y="52" text-anchor="middle" fill="#9ebcd0" font-size="10.5" font-family="ui-monospace,monospace">192.168.1.2 (CC:CC)</text>
+          </g>
+          <g class="lan-node" id="nodePc3" transform="translate(100,212)">
+            <rect class="lan-node-box" x="-26" y="-22" width="52" height="44" rx="11"/>
+            <rect x="-13" y="-12" width="26" height="17" rx="2" fill="none" stroke="#9ee9ff" stroke-width="2"/>
+            <path d="M-7 10h14M0 5v5" stroke="#9ee9ff" stroke-width="2" stroke-linecap="round"/>
+            <text x="0" y="37" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">PC3</text>
+            <text x="0" y="52" text-anchor="middle" fill="#9ebcd0" font-size="10.5" font-family="ui-monospace,monospace">192.168.1.3</text>
+          </g>
+          <g class="lan-node" id="nodePc4" transform="translate(500,212)">
+            <rect class="lan-node-box" x="-26" y="-22" width="52" height="44" rx="11"/>
+            <rect x="-13" y="-12" width="26" height="17" rx="2" fill="none" stroke="#9ee9ff" stroke-width="2"/>
+            <path d="M-7 10h14M0 5v5" stroke="#9ee9ff" stroke-width="2" stroke-linecap="round"/>
+            <text x="0" y="37" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">PC4</text>
+            <text x="0" y="52" text-anchor="middle" fill="#9ebcd0" font-size="10.5" font-family="ui-monospace,monospace">192.168.1.4</text>
+          </g>
+          <g class="drop-tag" id="dropTag3" transform="translate(158,220)">
+            <rect x="-24" y="-11" width="48" height="22" rx="11" fill="#4f2023" stroke="#ff816f" stroke-width="1.5"/>
+            <text x="0" y="4" text-anchor="middle" fill="#ffb3a8" font-size="10.5" font-weight="800">丢弃</text>
+          </g>
+          <g class="drop-tag" id="dropTag4" transform="translate(442,220)">
+            <rect x="-24" y="-11" width="48" height="22" rx="11" fill="#4f2023" stroke="#ff816f" stroke-width="1.5"/>
+            <text x="0" y="4" text-anchor="middle" fill="#ffb3a8" font-size="10.5" font-weight="800">丢弃</text>
+          </g>
+          <g id="arpPackets">
+            <g id="pktReq" style="visibility:hidden" transform="translate(100,62)" opacity="0">
+              <rect x="-24" y="-12" width="48" height="24" rx="7" fill="#ffc95a" stroke="#fff3c4" stroke-width="1.5"/>
+              <text x="0" y="4" text-anchor="middle" fill="#10243d" font-size="10.5" font-weight="900">FF:FF</text>
+            </g>
+            <g id="pktFlood2" style="visibility:hidden" transform="translate(300,138)" opacity="0">
+              <rect x="-20" y="-11" width="40" height="22" rx="6" fill="#ffc95a" stroke="#fff3c4" stroke-width="1.5"/>
+              <text x="0" y="3.5" text-anchor="middle" fill="#10243d" font-size="10" font-weight="900">广播</text>
+            </g>
+            <g id="pktFlood3" style="visibility:hidden" transform="translate(300,138)" opacity="0">
+              <rect x="-20" y="-11" width="40" height="22" rx="6" fill="#ffc95a" stroke="#fff3c4" stroke-width="1.5"/>
+              <text x="0" y="3.5" text-anchor="middle" fill="#10243d" font-size="10" font-weight="900">广播</text>
+            </g>
+            <g id="pktFlood4" style="visibility:hidden" transform="translate(300,138)" opacity="0">
+              <rect x="-20" y="-11" width="40" height="22" rx="6" fill="#ffc95a" stroke="#fff3c4" stroke-width="1.5"/>
+              <text x="0" y="3.5" text-anchor="middle" fill="#10243d" font-size="10" font-weight="900">广播</text>
+            </g>
+            <g id="pktRep" style="visibility:hidden" transform="translate(500,62)" opacity="0">
+              <rect x="-26" y="-12" width="52" height="24" rx="7" fill="#31c7a1" stroke="#d8fff2" stroke-width="1.5"/>
+              <text x="0" y="4" text-anchor="middle" fill="#072c2a" font-size="10.5" font-weight="900">CC:CC</text>
+            </g>
+          </g>
+        </svg>
+        <div class="packet-label">查询目标：<strong>192.168.1.2</strong>　· 同网段只认 MAC 车牌</div>
+        <div class="cache-bar" id="cacheBar">
+          <span><b>PC1 ARP 缓存：</b><span id="cacheEntryText">暂无 192.168.1.2 记录</span></span>
+          <span id="cacheTtl">--</span>
+        </div>
+        <div class="log" id="arpLog">
+          <div class="log-row live"><i class="log-dot"></i><b>准备喊话：</b><span>PC1 只知道 192.168.1.2，不知道它的 MAC</span></div>
+          <div class="log-row"><i class="log-dot"></i><span>点击“大喇叭广播喊话”，看交换机如何泛洪找人</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 <main>
-<section class="section" id="broadcast"><div class="section-head"><div class="chapter">幕一<br>大喇叭找人</div><div><h2>ARP Request：谁是 192.168.1.2？</h2><p class="section-intro">PC1 知道下一跳的 IP，却没有它的 MAC。于是把目标 MAC 写成全 F，交给交换机做广播：除了来时的端口，其他端口都转发。</p></div></div><div class="grid-2"><article class="panel soft-yellow comic"><div class="scene"><div class="stage"><div class="bubble yellow" style="left:12px;top:14px">谁是 192.168.1.2？<br>报上你的 MAC 车牌！</div><div class="mac-pill">目的 MAC：FF:FF:FF:FF:FF:FF</div><div class="actor pc1"><div class="actor-icon pc svg-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#1d6fa5" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div><span>PC1<br>发广播</span></div><div class="actor sw"><div class="actor-icon switch svg-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#1d6fa5" stroke-width="2.4"><rect x="7" y="15" width="34" height="18" rx="3"/><path d="M13 24h22M17 19v10M31 19v10"/></svg></div><span>交换机<br>泛洪转发</span></div><div class="actor pc2"><div class="actor-icon pc svg-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#1d6fa5" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div><span>PC2</span></div><div class="ether"></div><div class="broadcast-wave"></div></div><div class="scene-caption">交换机像传声筒：收到广播，就向所有其他端口复制一份。</div></div><h3>全 F 不是某一台机器</h3><p>FF:FF:FF:FF:FF:FF 表示“所有人”。广播包不会直接找到 PC2，而是先让同网段的每台设备都听见。</p></article><article class="panel comic"><span class="tag yellow">首屏可以点</span><h3>看一遍完整广播路径</h3><p>点上面的按钮，观察 PC3、PC4 收到广播后默默丢掉；PC2 认出自己，再准备单播回答。</p><div class="answer"><strong>交换机做什么？</strong><br>它只根据二层目的 MAC 转发。广播目的 MAC 是全 F，所以会泛洪。</div><div class="answer" style="background:#eaf7f4"><strong>广播范围：</strong>同一个 VLAN / 广播域内的设备。</div></article></div></section>
-<section class="section" id="reply"><div class="section-head"><div class="chapter">幕二<br>对号入座</div><div><h2>ARP Reply：我是！我的车牌是 CC:CC。</h2><p class="section-intro">PC3、PC4 发现目标 IP 不是自己，直接丢包。只有 PC2 对上号，再沿着收到广播的路径单播回 PC1。</p></div></div><div class="grid-2"><article class="panel soft-mint comic"><div class="scene dark"><div class="stage"><div class="bubble yellow" style="right:10px;top:14px">我是 192.168.1.2！<br>车牌 CC:CC 给你。</div><div class="reply-arrow"></div><div class="actor dark-text pc1"><div class="actor-icon pc svg-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#1d6fa5" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div><span>PC1<br>收到回答</span></div><div class="actor dark-text pc2"><div class="actor-icon whale svg-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#087968" stroke-width="2.4"><path d="M7 29c4-13 19-17 29-8 5 4 6 10 3 14-4 5-13 4-17-1"/><path d="M18 18c-1-7 4-10 6-12M24 17c2-5 7-5 9-2"/><circle cx="32" cy="24" r="1.8" fill="#087968" stroke="none"/></svg></div><span>PC2<br>真正的机主</span></div><div class="ether"></div></div><div class="scene-caption">单播只给 PC1：目标 MAC 改成 CC:CC，回答沿原路返回。</div></div><h3>单播回答，安静又精准</h3><p>ARP Reply 通常是单播帧。知道了对方的 MAC，后续数据就可以直接投递，不必再让全网听见。</p></article><article class="panel comic"><div class="mini-row head"><span>设备</span><span>看到 ARP Request</span><span>下一步</span></div><div class="mini-row"><span>PC3</span><span>目标不是我</span><span>丢弃</span></div><div class="mini-row"><span>PC4</span><span>目标不是我</span><span>丢弃</span></div><div class="mini-row highlight"><span>PC2</span><span>IP 对上了</span><span>单播回复 CC:CC</span></div><div class="answer"><strong>记忆点：</strong>广播是“大家都听见”，单播是“只给指定车牌”。</div></article></div></section>
-<section class="section" id="cache"><div class="section-head"><div class="chapter">幕三<br>记事本备忘</div><div><h2>学到的 MAC，先记下来。</h2><p class="section-intro">PC1 收到回复后，把“192.168.1.2 对应 CC:CC”放进 ARP 缓存。动态条目通常过几分钟会老化，过期再重新问一次。</p></div></div><div class="grid-2"><article class="panel soft-yellow comic"><div class="scene"><div class="stage"><div class="notebook"><div>192.168.1.2 → CC:CC</div><div>接口：GE0/0/1</div><div class="age">动态　剩余 238s</div></div><div class="actor pc1" style="left:62%;bottom:28px"><div class="actor-icon pc svg-icon"><svg viewBox="0 0 48 48" fill="none" stroke="#1d6fa5" stroke-width="2.5"><rect x="8" y="9" width="32" height="22" rx="3"/><path d="M17 39h14M24 31v8"/></svg></div><span>PC1<br>记住了</span></div><div class="bubble" style="left:12px;top:14px">下次直接投递，<br>不用再喊一遍。</div></div><div class="scene-caption">缓存是局部的速记本，不是永久档案；老化后会刷新，避免记住已经换人的旧车牌。</div></div><h3>缓存让局域网少一点噪声</h3><p>每一次发送前，设备先查 ARP 表。命中就直接封装；没命中或条目过期，才再次发 Request。</p></article><article class="panel comic"><div class="cache-card"><b>ARP cache</b><div class="new">192.168.1.2　CC:CC</div><div>192.168.1.3　DD:DD</div><div>动态条目 · 会老化</div></div><span class="tag mint">一张表就够</span><h3>IP ↔ MAC 的临时通讯录</h3><p>缓存记录的是“这一段局域网里，我最近见过谁”。它会随着网络变化更新。</p><div class="answer"><strong>为什么要老化？</strong><br>网卡可能更换、虚拟机可能迁移，旧 MAC 不能一直相信。</div></article></div></section>
-<section class="section" id="storm"><div class="section-head"><div class="chapter">幕四<br>致命回音壁</div><div><h2>二层环路没开 STP，广播会无限复制。</h2><p class="section-intro">两台交换机被错误地首尾相连，广播包就像在两面镜子之间来回反射。每绕一圈，副本更多，最终把链路和网卡灯全部打满。</p></div></div><div class="grid-2"><article class="panel comic"><div class="scene dark"><div class="stage storm-stage"><div class="storm-label">广播风暴：同一个包，越转越多</div><div class="loop-wire"></div><div class="storm-switch a">交换机 A</div><div class="storm-switch b">交换机 B</div><i class="storm-packet p1"></i><i class="storm-packet p2"></i><i class="storm-packet p3"></i><i class="storm-packet p4"></i></div><div class="scene-caption">没有 STP 的二层环路：广播没有 TTL，没人告诉它“到此为止”。</div></div><h3>广播包不会自己停</h3><p>IP 包有 TTL 可以逐跳减到 0；二层广播帧没有这个刹车。环路一旦存在，就会不断被交换机重新泛洪。</p></article><article class="panel soft-yellow comic"><span class="tag coral">避坑提醒</span><h3>发现网卡灯狂闪，先查二层环路</h3><div class="danger-note"><div class="danger-mark">!</div><div><strong>STP 是交换网络的安全护栏。</strong><p style="margin-top:5px">它会阻断一条备用链路，逻辑上消除环路；主链路故障时再恢复备用路径。</p></div></div><div class="answer"><strong>一句话：</strong>ARP 广播本身很正常，真正可怕的是“广播 + 二层环路 + 没有 STP”。</div></article></div></section>
-</main><footer class="footer"><div class="footer-inner"><div><strong>记住：先用 ARP 找车牌，再用单播送货。</strong><p>广播是找人，缓存是记事，STP 是给二层网络装护栏。</p></div><div class="legend"><span><i class="broadcast-dot"></i>ARP Request：广播</span><span><i class="reply-dot"></i>ARP Reply：单播</span><span><i class="storm-dot"></i>环路：风暴</span></div></div></footer>
+  <section class="section" id="broadcast">
+    <div class="section-head">
+      <div class="chapter">幕一<br>大喇叭找人</div>
+      <div>
+        <h2>ARP Request：谁是 192.168.1.2？</h2>
+        <p class="section-intro">PC1 知道下一跳的 IP，却没有它的 MAC。于是把目的 MAC 写成全 F，交给交换机做广播：除了来时的端口，其他端口都复制一份转发。</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel soft-yellow">
+        <div class="scene">
+          <svg class="scene-svg" viewBox="0 0 520 225" role="img" aria-label="ARP Request 广播泛洪拓扑图">
+            <rect x="16" y="12" width="218" height="46" rx="12" fill="#fff8df" stroke="#e4b74c" stroke-width="2"/>
+            <path d="M58 58l8 9 8-9z" fill="#fff8df" stroke="#e4b74c" stroke-width="2"/>
+            <line x1="59" y1="58" x2="73" y2="58" stroke="#fff8df" stroke-width="3"/>
+            <text x="125" y="32" text-anchor="middle" fill="#10243d" font-size="12.5" font-weight="800">谁是 192.168.1.2？</text>
+            <text x="125" y="49" text-anchor="middle" fill="#7c5b10" font-size="11.5" font-weight="700">报上你的 MAC 车牌！</text>
+            <rect x="268" y="18" width="236" height="32" rx="16" fill="#0d3152"/>
+            <text x="386" y="38" text-anchor="middle" fill="#ffc95a" font-size="12" font-weight="800" font-family="ui-monospace,monospace">目的 MAC: FF:FF:FF:FF:FF:FF</text>
+            <line x1="94" y1="142" x2="210" y2="142" stroke="#e09a2b" stroke-width="3"/>
+            <path d="M294 142 C345 142, 345 90, 405 90" fill="none" stroke="#e09a2b" stroke-width="2.6" stroke-dasharray="6 4"/>
+            <line x1="294" y1="142" x2="405" y2="142" stroke="#e09a2b" stroke-width="2.6" stroke-dasharray="6 4"/>
+            <path d="M294 142 C345 142, 345 194, 405 194" fill="none" stroke="#e09a2b" stroke-width="2.6" stroke-dasharray="6 4"/>
+            <g transform="translate(66,142)">
+              <rect x="-28" y="-26" width="56" height="52" rx="13" fill="#d9eef8" stroke="#1d6fa5" stroke-width="2.5"/>
+              <rect x="-13" y="-13" width="26" height="17" rx="2" fill="none" stroke="#1d6fa5" stroke-width="2.2"/>
+              <path d="M-7 11h14M0 4v7" stroke="#1d6fa5" stroke-width="2.2" stroke-linecap="round"/>
+              <text x="0" y="42" text-anchor="middle" fill="#10243d" font-size="12.5" font-weight="800">PC1 发广播</text>
+            </g>
+            <g transform="translate(252,142)">
+              <rect x="-42" y="-26" width="84" height="52" rx="13" fill="#d6f3ee" stroke="#087968" stroke-width="2.5"/>
+              <path d="M-18 -6h36M8 -12l10 6-10 6" fill="none" stroke="#087968" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 6h-36M-8 0l-10 6 10 6" fill="none" stroke="#087968" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="0" y="42" text-anchor="middle" fill="#10243d" font-size="12.5" font-weight="800">交换机泛洪</text>
+            </g>
+            <g transform="translate(430,90)"><rect x="-24" y="-17" width="48" height="34" rx="9" fill="#fff" stroke="#1d6fa5" stroke-width="2"/><text x="0" y="5" text-anchor="middle" fill="#10243d" font-size="12" font-weight="800">PC2</text><text x="36" y="4" fill="#087968" font-size="11.5" font-weight="750">收到</text></g>
+            <g transform="translate(418,142)"><rect x="-24" y="-17" width="48" height="34" rx="9" fill="#fff" stroke="#648398" stroke-width="2"/><text x="0" y="5" text-anchor="middle" fill="#3c5a70" font-size="12" font-weight="800">PC3</text><text x="36" y="4" fill="#557089" font-size="11.5" font-weight="700">收到</text></g>
+            <g transform="translate(418,194)"><rect x="-24" y="-17" width="48" height="34" rx="9" fill="#fff" stroke="#648398" stroke-width="2"/><text x="0" y="5" text-anchor="middle" fill="#3c5a70" font-size="12" font-weight="800">PC4</text><text x="36" y="4" fill="#557089" font-size="11.5" font-weight="700">收到</text></g>
+          </svg>
+          <div class="scene-caption">交换机像传声筒：收到目的 MAC 为全 F 的广播帧，向除入口外的所有端口复制一份。</div>
+        </div>
+        <h3>全 F 不是某一台机器</h3>
+        <p>FF:FF:FF:FF:FF:FF 表示“所有人”。广播包不会直接命中 PC2，而是先让同网段的每台设备都听见这一嗓子。</p>
+      </article>
+      <article class="panel">
+        <span class="tag yellow">为什么全网都能听见</span>
+        <h3>交换机只看二层，不拆 IP</h3>
+        <p>交换机工作在二层（数据链路层），它眼里没有 192.168.1.2 这种 IP 地址，只有端口和 MAC 地址。</p>
+        <div class="answer">
+          <div class="answer-box yellow" style="margin-bottom:12px"><strong>泛洪规则：</strong>看到目的 MAC 是 <code style="font-family:var(--mono)">FF:FF:FF:FF:FF:FF</code>，直接从其他所有活跃端口复制转发。</div>
+          <div class="answer-box mint"><strong>广播范围：</strong>同一片局域网（同一个 VLAN / 广播域），广播包不会自己穿过路由器。</div>
+        </div>
+      </article>
+    </div>
+  </section>
+  <section class="section" id="reply">
+    <div class="section-head">
+      <div class="chapter">幕二<br>对号入座</div>
+      <div>
+        <h2>ARP Reply：我是！我的车牌是 CC:CC。</h2>
+        <p class="section-intro">PC3、PC4 拆开看发现目标 IP 不是自己，默默丢掉。只有 PC2 对上号，沿着交换机单播回复 PC1。</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel soft-mint">
+        <div class="scene dark">
+          <svg class="scene-svg" viewBox="0 0 520 225" role="img" aria-label="ARP Reply 单播回复拓扑图">
+            <rect x="242" y="12" width="260" height="46" rx="12" fill="#ffe9ad" stroke="#ffc95a" stroke-width="2"/>
+            <path d="M430 58l8 9 8-9z" fill="#ffe9ad" stroke="#ffc95a" stroke-width="2"/>
+            <line x1="431" y1="58" x2="445" y2="58" stroke="#ffe9ad" stroke-width="3"/>
+            <text x="372" y="32" text-anchor="middle" fill="#10243d" font-size="12.5" font-weight="800">我是 192.168.1.2！</text>
+            <text x="372" y="49" text-anchor="middle" fill="#5e4406" font-size="11.5" font-weight="750">把我的车牌 CC:CC 给你</text>
+            <line x1="294" y1="142" x2="394" y2="142" stroke="#224563" stroke-width="2.2"/>
+            <path d="M294 142 C342 142, 342 194, 394 194" fill="none" stroke="#224563" stroke-width="2.2"/>
+            <path d="M392 92 C342 92, 342 142, 294 142" fill="none" stroke="#31c7a1" stroke-width="3.5"/>
+            <line x1="210" y1="142" x2="96" y2="142" stroke="#31c7a1" stroke-width="3.5"/>
+            <polygon points="96,142 108,136 108,148" fill="#31c7a1"/>
+            <rect x="114" y="114" width="84" height="22" rx="11" fill="#12443c" stroke="#31c7a1" stroke-width="1.2"/>
+            <text x="156" y="129" text-anchor="middle" fill="#9effe3" font-size="11" font-weight="800">单播回传</text>
+            <g transform="translate(66,142)">
+              <rect x="-28" y="-26" width="56" height="52" rx="13" fill="#143c5e" stroke="#31c7a1" stroke-width="2.5"/>
+              <rect x="-13" y="-13" width="26" height="17" rx="2" fill="none" stroke="#9ee9ff" stroke-width="2"/>
+              <path d="M-7 11h14M0 4v7" stroke="#9ee9ff" stroke-width="2" stroke-linecap="round"/>
+              <text x="0" y="42" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="800">PC1 收到</text>
+            </g>
+            <g transform="translate(252,142)">
+              <rect x="-42" y="-24" width="84" height="48" rx="12" fill="#133d61" stroke="#5aa1c2" stroke-width="2"/>
+              <text x="0" y="4" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="800">交换机</text>
+              <text x="0" y="42" text-anchor="middle" fill="#9bc2d6" font-size="11.5">精准点对点转发</text>
+            </g>
+            <g transform="translate(418,92)"><rect x="-26" y="-19" width="52" height="38" rx="10" fill="#114a42" stroke="#31c7a1" stroke-width="2.5"/><text x="0" y="5" text-anchor="middle" fill="#9effe3" font-size="12.5" font-weight="850">PC2</text><text x="35" y="4" text-anchor="start" fill="#73f2cd" font-size="11.5" font-weight="800">回 CC:CC</text></g>
+            <g transform="translate(418,142)"><rect x="-24" y="-16" width="48" height="32" rx="9" fill="#0f2b45" stroke="#2c4f6d" stroke-width="1.8"/><text x="0" y="4" text-anchor="middle" fill="#7f9eb5" font-size="12" font-weight="700">PC3</text><text x="35" y="4" text-anchor="start" fill="#ff9e8e" font-size="11.5" font-weight="700">丢弃</text></g>
+            <g transform="translate(418,194)"><rect x="-24" y="-16" width="48" height="32" rx="9" fill="#0f2b45" stroke="#2c4f6d" stroke-width="1.8"/><text x="0" y="4" text-anchor="middle" fill="#7f9eb5" font-size="12" font-weight="700">PC4</text><text x="35" y="4" text-anchor="start" fill="#ff9e8e" font-size="11.5" font-weight="700">丢弃</text></g>
+          </svg>
+          <div class="scene-caption">单播只给 PC1：目的 MAC 直接填成 AA:AA，交换机不再打扰 PC3 和 PC4。</div>
+        </div>
+        <h3>单播回答，安静又精准</h3>
+        <p>ARP Reply 是单播帧。因为 PC2 在刚才的广播包里已经记住了 PC1 的源 MAC，回信直接点名送达。</p>
+      </article>
+      <article class="panel">
+        <span class="tag mint">每台电脑收到广播后的反应</span>
+        <h3>只有对上 IP 的人会回答</h3>
+        <div class="mini-table">
+          <div class="mini-row head"><span>设备</span><span>核对目标 IP</span><span>动作</span></div>
+          <div class="mini-row"><span>PC3</span><span>192.168.1.3 ≠ .2</span><span>默默丢弃</span></div>
+          <div class="mini-row"><span>PC4</span><span>192.168.1.4 ≠ .2</span><span>默默丢弃</span></div>
+          <div class="mini-row highlight"><span>PC2</span><span>192.168.1.2 == .2</span><span>单播回复 CC:CC</span></div>
+        </div>
+        <p>同一刻交换机自己也顺便学了一手：它通过 PC1 发广播的入端口，记住了“PC1 的 MAC 在 1 号口”，所以回复能一步到位。</p>
+        <div class="answer"><div class="answer-box mint"><strong>记忆口诀：</strong>提问用<strong>广播</strong>（大家都听见），回答用<strong>单播</strong>（只给指定车牌）。</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="section" id="cache">
+    <div class="section-head">
+      <div class="chapter">幕三<br>记事本备忘</div>
+      <div>
+        <h2>学到的 MAC，先记下来。</h2>
+        <p class="section-intro">PC1 收到回复后，把“192.168.1.2 对应 CC:CC”放进 ARP 缓存表。动态条目通常过几分钟会老化，过期再重新问一次。</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel soft-yellow">
+        <div class="scene">
+          <svg class="scene-svg" viewBox="0 0 520 215" role="img" aria-label="PC1 本地 ARP 缓存命中直接单播示意图">
+            <rect x="18" y="14" width="214" height="44" rx="12" fill="#ffffff" stroke="#afd5df" stroke-width="2"/>
+            <path d="M74 58l8 9 8-9z" fill="#ffffff" stroke="#afd5df" stroke-width="2"/>
+            <line x1="75" y1="58" x2="89" y2="58" stroke="#ffffff" stroke-width="3"/>
+            <text x="125" y="33" text-anchor="middle" fill="#10243d" font-size="12.5" font-weight="800">记事本里有记录！</text>
+            <text x="125" y="49" text-anchor="middle" fill="#087968" font-size="11.5" font-weight="700">直接投递，不用再喊一遍</text>
+            <rect x="260" y="14" width="242" height="72" rx="12" fill="#fffdf3" stroke="#e4b74c" stroke-width="2"/>
+            <text x="276" y="35" fill="#8b5e00" font-size="12" font-weight="800">ARP 备忘录 (动态表项)</text>
+            <text x="276" y="55" fill="#10243d" font-size="12.5" font-weight="750" font-family="ui-monospace,monospace">192.168.1.2 → CC:CC</text>
+            <text x="276" y="74" fill="#087968" font-size="11.5" font-weight="700" font-family="ui-monospace,monospace">接口 GE0/0/1 · 剩余 238s</text>
+            <line x1="112" y1="142" x2="394" y2="142" stroke="#087968" stroke-width="3.5"/>
+            <polygon points="404,142 392,136 392,148" fill="#087968"/>
+            <rect x="192" y="114" width="136" height="22" rx="11" fill="#d6f3ee" stroke="#087968" stroke-width="1.2"/>
+            <text x="260" y="129" text-anchor="middle" fill="#055e50" font-size="11.5" font-weight="800">命中缓存 · 直接封装</text>
+            <g transform="translate(82,142)"><rect x="-30" y="-26" width="60" height="52" rx="13" fill="#d9eef8" stroke="#1d6fa5" stroke-width="2.5"/><text x="0" y="5" text-anchor="middle" fill="#10243d" font-size="13" font-weight="850">PC1</text><text x="0" y="42" text-anchor="middle" fill="#3b5e77" font-size="11.5" font-weight="750">查表跳过广播</text></g>
+            <g transform="translate(436,142)"><rect x="-30" y="-26" width="60" height="52" rx="13" fill="#d6f3ee" stroke="#087968" stroke-width="2.5"/><text x="0" y="5" text-anchor="middle" fill="#10243d" font-size="13" font-weight="850">PC2</text><text x="0" y="42" text-anchor="middle" fill="#087968" font-size="11.5" font-weight="750">CC:CC 直达</text></g>
+          </svg>
+          <div class="scene-caption">缓存是局部的速记本，不是永久档案；老化后会刷新，避免记住已经换人的旧车牌。</div>
+        </div>
+        <h3>缓存让局域网少一点噪声</h3>
+        <p>每一次发数据包前，设备都会先查 ARP 缓存。命中就直接套上对方的 MAC 车牌；没命中或过期了，才发一次广播问人。</p>
+      </article>
+      <article class="panel">
+        <span class="tag mint">一张表就够</span>
+        <h3>IP ↔ MAC 的临时通讯录</h3>
+        <div class="cache-card">
+          <div class="cache-card-head"><span>ARP cache (arp -a)</span><span>状态 / 老化时间</span></div>
+          <div class="cache-entry new"><span>192.168.1.2 → CC:CC</span><span>动态 · 238s</span></div>
+          <div class="cache-entry"><span>192.168.1.3 → DD:DD</span><span>动态 · 115s</span></div>
+          <div class="cache-entry"><span>192.168.1.1 → AA:AA</span><span>本机接口</span></div>
+        </div>
+        <p>缓存记录的是“这一段局域网里，我最近联系过谁”。它就像手机里的临时通话记录，会随着网络变化自动淘汰刷新。</p>
+        <div class="answer"><div class="answer-box"><strong>为什么要设置老化时间？</strong><br>设备可能换新网卡、虚拟机可能漂移到别的宿主机，旧车牌不能永久信任。</div></div>
+      </article>
+    </div>
+  </section>
+  <section class="section" id="storm">
+    <div class="section-head">
+      <div class="chapter">幕四<br>致命回音壁</div>
+      <div>
+        <h2>二层环路没开 STP，广播会无限复制。</h2>
+        <p class="section-intro">两台交换机被错误地用两条网线首尾相连，广播包就像站在两面镜子中间无限反射。每绕一圈副本翻倍，最终把整张网打瘫痪。</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel">
+        <div class="scene dark">
+          <svg class="scene-svg" viewBox="0 0 520 225" role="img" aria-label="二层环路广播风暴拓扑图">
+            <rect x="108" y="14" width="304" height="30" rx="15" fill="#4f2023" stroke="#ff816f" stroke-width="1.5"/>
+            <text x="260" y="33" text-anchor="middle" fill="#ffd2cb" font-size="12" font-weight="800">广播风暴：同一个包，越转越多 (×2 → ×4 → ×8)</text>
+            <path d="M168 112 C210 64, 310 64, 352 112" fill="none" stroke="#ff816f" stroke-width="3.5"/>
+            <polygon points="352,112 340,106 346,100" fill="#ff816f"/>
+            <path d="M352 152 C310 200, 210 200, 168 152" fill="none" stroke="#ff816f" stroke-width="3.5"/>
+            <polygon points="168,152 180,158 174,164" fill="#ff816f"/>
+            <circle cx="220" cy="84" r="7" fill="#ffc95a" stroke="#fff3c4" stroke-width="1.5"/>
+            <circle cx="260" cy="76" r="7" fill="#ffc95a" stroke="#fff3c4" stroke-width="1.5"/>
+            <circle cx="300" cy="84" r="7" fill="#ffc95a" stroke="#fff3c4" stroke-width="1.5"/>
+            <circle cx="300" cy="180" r="7" fill="#ff816f" stroke="#ffd8d1" stroke-width="1.5"/>
+            <circle cx="260" cy="188" r="7" fill="#ff816f" stroke="#ffd8d1" stroke-width="1.5"/>
+            <circle cx="220" cy="180" r="7" fill="#ff816f" stroke="#ffd8d1" stroke-width="1.5"/>
+            <text x="260" y="136" text-anchor="middle" fill="#ffb8ad" font-size="12" font-weight="800">无刹车 · 无限泛洪</text>
+            <g transform="translate(110,132)"><rect x="-58" y="-28" width="116" height="56" rx="12" fill="#133d61" stroke="#62b4d9" stroke-width="2.2"/><text x="0" y="-3" text-anchor="middle" fill="#fff" font-size="13.5" font-weight="800">交换机 A</text><text x="0" y="15" text-anchor="middle" fill="#9bc2d6" font-size="10.5">收到广播就泛洪</text></g>
+            <g transform="translate(410,132)"><rect x="-58" y="-28" width="116" height="56" rx="12" fill="#133d61" stroke="#62b4d9" stroke-width="2.2"/><text x="0" y="-3" text-anchor="middle" fill="#fff" font-size="13.5" font-weight="800">交换机 B</text><text x="0" y="15" text-anchor="middle" fill="#9bc2d6" font-size="10.5">收到广播又回传</text></g>
+          </svg>
+          <div class="scene-caption">没有 STP 的二层环路：二层广播帧没有 TTL 寿命限制，没人告诉它“到此为止”。</div>
+        </div>
+        <h3>广播包不会自己停</h3>
+        <p>三层 IP 包头里有一个 TTL 计数器，每过一台路由器减 1，归零就丢弃；二层以太网帧没有 TTL 这个刹车，一旦成环就永不停止。</p>
+      </article>
+      <article class="panel soft-yellow">
+        <span class="tag coral">避坑提醒</span>
+        <h3>发现网卡灯狂闪、全网断线，先查二层环路</h3>
+        <div class="pitfall"><div class="pitfall-mark">!</div><div><strong>STP（生成树协议）是交换网的安全护栏。</strong><p style="margin-top:5px">它会在物理环形链路里自动在逻辑上“堵死”一条备用接口，消除环路；只有主网线断了，才会秒级放开备用线。</p></div></div>
+        <div class="pitfall ok"><div class="pitfall-mark">✓</div><div><strong>别把“正常 ARP 广播”当成故障：</strong><p style="margin-top:5px">正常局域网里每天都在发 ARP 广播。真正致命的是“广播帧 + 物理二层环路 + 交换机没开 STP”。</p></div></div>
+        <div class="answer"><div class="answer-box yellow"><strong>串回第一弹：</strong>路由器在三层帮我们隔离广播域；而在同一个网段内，靠 <strong>ARP + STP</strong> 协同工作。</div></div>
+      </article>
+    </div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="footer-inner">
+    <div><strong>记住：先用 ARP 广播问出车牌，再用单播精准送货。</strong><p>广播是找人，缓存是记事，STP 是给二层环路装护栏。</p></div>
+    <div class="legend"><span><i class="req"></i>ARP Request 广播</span><span><i class="rep"></i>ARP Reply 单播</span><span><i class="storm"></i>二层环路风暴</span></div>
+  </div>
+</footer>
 <script>
-(()=>{const btn=document.querySelector('#broadcastBtn'),reset=document.querySelector('#resetBtn'),status=document.querySelector('#demoStatus'),step=document.querySelector('#arpStep'),wave=document.querySelector('#broadcastWave'),reply=document.querySelector('#replyLine'),target=document.querySelector('#targetNode'),n3=document.querySelector('#node3'),n4=document.querySelector('#node4'),light=document.querySelector('#cacheLight'),log=document.querySelector('#arpLog');let running=false;const wait=ms=>new Promise(r=>setTimeout(r,ms));function render(s){step.textContent=['待机','广播中','找到目标','已缓存'][s];if(s===0){wave.classList.remove('on');reply.classList.remove('on');target.classList.remove('hit');n3.classList.add('muted');n4.classList.add('muted');light.classList.remove('on');status.innerHTML='<span class="pulse-dot"></span>广播包还没出发';log.innerHTML='<div class="log-row live"><i class="log-dot"></i><b>等待喊话：</b>PC1 准备查询 192.168.1.2</div><div class="log-row"><i class="log-dot"></i><span>目标 MAC 先写成 FF:FF:FF:FF:FF:FF</span></div>'}if(s===1){wave.classList.add('on');status.textContent='交换机泛洪：PC2、PC3、PC4 都听见了';log.innerHTML='<div class="log-row live"><i class="log-dot"></i><b>广播发出：</b>目的 MAC = FF:FF:FF:FF:FF:FF</div><div class="log-row"><i class="log-dot"></i><span>除入端口外，交换机复制给所有端口</span></div>'}if(s===2){target.classList.add('hit');n3.classList.add('muted');n4.classList.add('muted');reply.classList.add('on');status.textContent='PC2 对上 IP：单播回答自己的 MAC = CC:CC';log.innerHTML='<div class="log-row live"><i class="log-dot"></i><b>目标回应：</b>我是 192.168.1.2，车牌是 CC:CC</div><div class="log-row"><i class="log-dot"></i><span>PC3、PC4：目标不是我，默默丢包</span></div>'}if(s===3){light.classList.add('on');status.textContent='ARP 缓存点亮：192.168.1.2 → CC:CC';log.innerHTML='<div class="log-row live"><i class="log-dot"></i><b>记入缓存：</b>192.168.1.2 ↔ CC:CC</div><div class="log-row"><i class="log-dot"></i><span>下次发送先查表，动态条目几分钟后老化</span></div>'}}async function run(){if(running)return;running=true;render(0);await wait(450);render(1);await wait(1500);render(2);await wait(850);render(3);running=false}function resetDemo(){running=false;render(0)}btn.addEventListener('click',run);reset.addEventListener('click',resetDemo);window.__handle={getState:()=>({running,step:step.textContent,status:status.textContent,cache:light.classList.contains('on')}),broadcast:run,reset:resetDemo}})();
+(() => {
+  const btn = document.getElementById('broadcastBtn');
+  const resetBtn = document.getElementById('resetArpBtn');
+  const statusEl = document.getElementById('arpStatus');
+  const stageTag = document.getElementById('arpStageTag');
+  const arpLog = document.getElementById('arpLog');
+  const cacheBar = document.getElementById('cacheBar');
+  const cacheEntryText = document.getElementById('cacheEntryText');
+  const cacheTtl = document.getElementById('cacheTtl');
+  const links = [1,2,3,4].map(i => document.getElementById('link'+i));
+  const nodes = [1,2,3,4].map(i => document.getElementById('nodePc'+i));
+  const drop3 = document.getElementById('dropTag3');
+  const drop4 = document.getElementById('dropTag4');
+  const pktReq = document.getElementById('pktReq');
+  const pktF2 = document.getElementById('pktFlood2');
+  const pktF3 = document.getElementById('pktFlood3');
+  const pktF4 = document.getElementById('pktFlood4');
+  const pktRep = document.getElementById('pktRep');
+  let running = false, timerIds = [];
+  const clearTimers = () => { timerIds.forEach(clearTimeout); timerIds = []; };
+  const setPkt = (el, x, y, op) => { el.setAttribute('transform', `translate(${x},${y})`); el.setAttribute('opacity', String(op)); el.style.visibility = op ? 'visible' : 'hidden'; };
+  const schedule = (fn, ms) => timerIds.push(setTimeout(fn, ms));
+
+  function resetAll(){
+    clearTimers(); running = false;
+    links.forEach(l => l.setAttribute('class', 'lan-link'));
+    nodes.forEach((n, idx) => n.setAttribute('class', idx === 0 ? 'lan-node active' : 'lan-node'));
+    drop3.classList.remove('show'); drop4.classList.remove('show');
+    setPkt(pktReq, 100, 62, 0); setPkt(pktF2, 300, 138, 0); setPkt(pktF3, 300, 138, 0); setPkt(pktF4, 300, 138, 0); setPkt(pktRep, 500, 62, 0);
+    stageTag.textContent = '待机'; stageTag.classList.remove('live');
+    cacheBar.classList.remove('lit'); cacheEntryText.textContent = '暂无 192.168.1.2 记录'; cacheTtl.textContent = '--';
+    statusEl.textContent = '待机：PC1 准备查询 192.168.1.2';
+    arpLog.innerHTML = '<div class="log-row live"><i class="log-dot"></i><b>准备喊话：</b><span>PC1 只知道 192.168.1.2，不知道它的 MAC</span></div><div class="log-row"><i class="log-dot"></i><span>点击“大喇叭广播喊话”，看交换机如何泛洪找人</span></div>';
+  }
+  function startDemo(){
+    if(running) return;
+    resetAll(); running = true;
+    stageTag.textContent = '1. 广播出发'; stageTag.classList.add('live');
+    links[0].setAttribute('class', 'lan-link req');
+    setPkt(pktReq, 100, 62, 1);
+    requestAnimationFrame(() => setPkt(pktReq, 300, 138, 1));
+    statusEl.textContent = 'PC1 发出 ARP Request (FF:FF:FF:FF:FF:FF)';
+    arpLog.innerHTML = '<div class="log-row live"><i class="log-dot"></i><b>Step 1 · 发出广播：</b><span>目的 MAC = FF:FF:FF:FF:FF:FF，问“谁是 192.168.1.2？”</span></div><div class="log-row"><i class="log-dot"></i><span>数据包沿着网线送进交换机</span></div>';
+
+    schedule(() => {
+      stageTag.textContent = '2. 交换机泛洪'; setPkt(pktReq, 300, 138, 0);
+      links[1].setAttribute('class', 'lan-link req'); links[2].setAttribute('class', 'lan-link req'); links[3].setAttribute('class', 'lan-link req');
+      setPkt(pktF2, 300, 138, 1); setPkt(pktF3, 300, 138, 1); setPkt(pktF4, 300, 138, 1);
+      requestAnimationFrame(() => { setPkt(pktF2, 500, 62, 1); setPkt(pktF3, 100, 212, 1); setPkt(pktF4, 500, 212, 1); });
+      statusEl.textContent = '交换机泛洪：同时复制给 PC2 / PC3 / PC4';
+      arpLog.innerHTML = '<div class="log-row live"><i class="log-dot"></i><b>Step 2 · 全网广播：</b><span>交换机收到全 F 帧，向所有其他端口泛洪转发</span></div><div class="log-row"><i class="log-dot"></i><span>同局域网内的 PC2、PC3、PC4 全部收到喊话</span></div>';
+    }, 650);
+
+    schedule(() => {
+      stageTag.textContent = '3. 对号单播';
+      setPkt(pktF2, 500, 62, 0); setPkt(pktF3, 100, 212, 0); setPkt(pktF4, 500, 212, 0);
+      nodes[2].setAttribute('class', 'lan-node dim'); nodes[3].setAttribute('class', 'lan-node dim');
+      links[2].setAttribute('class', 'lan-link dim'); links[3].setAttribute('class', 'lan-link dim');
+      drop3.classList.add('show'); drop4.classList.add('show');
+      nodes[1].setAttribute('class', 'lan-node hit');
+      links[1].setAttribute('class', 'lan-link rep'); links[0].setAttribute('class', 'lan-link rep');
+      setPkt(pktRep, 500, 62, 1);
+      requestAnimationFrame(() => setPkt(pktRep, 300, 138, 1));
+      schedule(() => setPkt(pktRep, 100, 62, 1), 350);
+      statusEl.textContent = 'PC3/PC4 丢弃；PC2 单播回复 CC:CC';
+      arpLog.innerHTML = '<div class="log-row live"><i class="log-dot"></i><b>Step 3 · 认领单播：</b><span>PC3/PC4 IP 不符默默丢弃；PC2 单播回复“我是 CC:CC”</span></div><div class="log-row"><i class="log-dot"></i><span>ARP Reply 沿着交换机精准发回 PC1</span></div>';
+    }, 1350);
+
+    schedule(() => {
+      stageTag.textContent = '已缓存'; setPkt(pktRep, 100, 62, 0);
+      nodes[0].setAttribute('class', 'lan-node hit');
+      cacheBar.classList.add('lit'); cacheEntryText.textContent = '192.168.1.2 ↔ CC:CC'; cacheTtl.textContent = 'TTL 240s';
+      statusEl.textContent = '已缓存！PC1 记住 192.168.1.2 ↔ CC:CC';
+      arpLog.innerHTML = '<div class="log-row live"><i class="log-dot"></i><b>Step 4 · 写入备忘录：</b><span>PC1 已记住 192.168.1.2 对应车牌 CC:CC</span></div><div class="log-row"><i class="log-dot"></i><span>下次发数据直接套 CC:CC 单播投递，不再全网喊话</span></div>';
+      running = false;
+    }, 2250);
+  }
+
+  btn.addEventListener('click', startDemo);
+  resetBtn.addEventListener('click', resetAll);
+  window.__arpHandle = { start: startDemo, reset: resetAll, getState: () => ({ running, stage: stageTag.textContent, status: statusEl.textContent, cache: cacheEntryText.textContent }) };
+})();
 </script>
-</body></html>
+</body>
+</html>
