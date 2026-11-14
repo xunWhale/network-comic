@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#071d35" />
+<title>小鲸鱼的数通小剧场：OSPF 邻居、反掩码与环回口</title>
+<style>
+/* 严格沿用 index.html 的 CSS 变量与结构 */
+:root{
+  --ink:#10243d;--muted:#557089;--paper:#f5f9fb;--white:#fff;--deep:#071d35;--deep-2:#0d3152;
+  --blue:#1d6fa5;--mint:#31c7a1;--mint-dark:#087968;--yellow:#ffc95a;--coral:#ff816f;--line:#d8e6ed;
+  --soft-blue:#e8f3f8;--soft-mint:#e4f7f1;--soft-yellow:#fff3d6;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);background:var(--paper);font-family:var(--font);font-size:16px;line-height:1.75;overflow-x:hidden}
+.topbar{
+  position:sticky;top:0;z-index:20;
+  min-height:64px;background:rgba(7,29,53,.96);backdrop-filter:blur(8px);
+  color:white;display:flex;align-items:center;justify-content:space-between;
+  padding:8px max(22px,calc((100% - 1180px)/2));border-bottom:1px solid rgba(255,255,255,.13);
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;white-space:nowrap}
+.brand-mark{width:31px;height:31px;border-radius:10px;background:var(--mint);display:grid;place-items:center;color:var(--deep);font-weight:900}
+.nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.nav a{font-size:14px;text-decoration:none;color:#c9d9e5;padding:8px 11px;border-radius:8px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;transition:background .15s}
+.nav a:hover{background:#164466;color:white}
+.nav a.nav-pill{background:rgba(49,199,161,.15);color:#8af0d5;border:1px solid rgba(49,199,161,.32)}
+.nav a.nav-pill:hover{background:rgba(49,199,161,.26);color:white}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">鲸</span><span>小鲸鱼的数通小剧场</span></div>
+  <nav class="nav">
+    <a href="index.html">第一弹：路由与下一跳</a>
+    <a href="arp.html">第二弹：ARP 与广播风暴</a>
+    <a class="nav-pill" href="ospf.html">第三弹：OSPF 邻居与反掩码</a>
+  </nav>
+</header>
+<section class="hero" id="demo">
+  <div class="hero-inner">
+    <div>
+      <div class="kicker">给刚学完静态路由的你</div>
+      <h1>OSPF <span>邻居、反掩码</span>与环回口</h1>
+      <p class="hero-lede">不再手动敲静态路由，让路由器自己“聊天”建邻居。这一弹带你搞定 OSPF 动态路由的核心：反掩码宣告与环回口的作用。</p>
+      <div class="demo-controls">
+        <button class="primary" id="sendBtn">建邻居</button>
+        <button class="secondary" id="resetBtn">重置</button>
+        <span class="status" id="demoStatus" aria-live="polite"><span class="pulse-dot"></span><span>R1-R2 待命</span></span>
+      </div>
+    </div>
+    <div class="station" aria-label="OSPF 邻居建立实时演练">
+      <div class="station-head">
+        <span>OSPF 邻居建立 · 状态演练</span>
+        <span class="hop-pill" id="hopLabel">Down</span>
+      </div>
+      <div class="station-screen">
+        <svg class="topo-svg" viewBox="0 0 600 180" role="img" aria-label="R1 到 R2 OSPF 建邻拓扑">
+          <line x1="100" y1="90" x2="500" y2="90" stroke="#244a68" stroke-width="4"/>
+          <g id="nodeR1" class="svg-node active" transform="translate(100,90)">
+            <circle class="node-ring" cx="0" cy="0" r="26" fill="#143c5e" stroke="#407493" stroke-width="2.5"/>
+            <text class="node-title" x="0" y="5" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800">R1</text>
+            <text x="0" y="50" text-anchor="middle" fill="#89a9be" font-size="12" font-family="ui-monospace,monospace">1.1.1.1</text>
+          </g>
+          <g id="nodeR2" class="svg-node" transform="translate(500,90)">
+            <circle class="node-ring" cx="0" cy="0" r="26" fill="#143c5e" stroke="#407493" stroke-width="2.5"/>
+            <text class="node-title" x="0" y="5" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="800">R2</text>
+            <text x="0" y="50" text-anchor="middle" fill="#89a9be" font-size="12" font-family="ui-monospace,monospace">2.2.2.2</text>
+          </g>
+          <g id="pktHello" transform="translate(100,50)" opacity="0">
+            <rect x="-24" y="-13" width="48" height="26" rx="8" fill="#ffc95a" stroke="#fff3c4" stroke-width="2"/>
+            <text x="0" y="5" text-anchor="middle" fill="#071d35" font-size="12" font-weight="900">Hello</text>
+          </g>
+        </svg>
+        <div class="log" id="log">
+          <div class="log-row live"><i class="log-dot"></i><b>状态 Down：</b><span>R1 和 R2 还没收到 Hello 包</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<main>
+  <section class="section" id="wildcard">
+    <div class="section-head">
+      <div class="chapter">幕一<br>反掩码揭秘</div>
+      <div>
+        <h2>为什么 OSPF 不用子网掩码？</h2>
+        <p class="section-intro">因为它用反掩码来精确锁定比特。0 代表必须匹配，1 代表随意。0.0.0.0 锁死接口，0.0.0.255 匹配一个 C 类网段。</p>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="loopback">
+    <div class="section-head">
+      <div class="chapter">幕二<br>环回口稳定</div>
+      <div>
+        <h2>必须配 Loopback 的三大理由。</h2>
+        <p class="section-intro">逻辑接口永不宕机，它是路由器在 OSPF 网络里最稳定的 ID。没有它，邻居经常因为物理口抖动而闪断。</p>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="neighbor">
+    <div class="section-head">
+      <div class="chapter">幕三<br>建邻七状态</div>
+      <div>
+        <h2>Init → 2-Way → Full。</h2>
+        <p class="section-intro">从互不相识到邻居 Full，OSPF 需要走过七个阶段。翻车最多的现场：Area ID 不一致，Router-ID 冲突。</p>
+      </div>
+    </div>
+  </section>
+  <section class="section" id="command">
+    <div class="section-head">
+      <div class="chapter">幕四<br>实战照抄</div>
+      <div>
+        <h2>华为 OSPF 基础配置三件套。</h2>
+        <p class="section-intro">router-id，area，network。配好这三步，邻居马上跳 Full。</p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="footer-inner">
+    <div><strong>记住：OSPF 先建邻居，再传路由。</strong><p>反掩码宣告接口，环回口做 Router-ID。</p></div>
+    <div class="legend"><span><i class="query"></i>Hello 包</span><span><i class="mac"></i>Full 状态</span></div>
+  </div>
+</footer>
+<script>
+(() => {
+  const nodeR1 = document.getElementById('nodeR1');
+  const nodeR2 = document.getElementById('nodeR2');
+  const pkt = document.getElementById('pktHello');
+  const log = document.getElementById('log');
+  const hopLabel = document.getElementById('hopLabel');
+  const send = document.getElementById('sendBtn');
+  const reset = document.getElementById('resetBtn');
+  function setStatus(state, msg, logMsg) {
+    hopLabel.textContent = state;
+    log.innerHTML = `<div class="log-row live"><i class="log-dot"></i><b>状态 ${state}：</b><span>${logMsg}</span></div>`;
+  }
+  send.addEventListener('click', async () => {
+    setStatus('Init', 'R1 向 R2 发送 Hello 包', 'R1 试图通过接口 192.168.1.1 发现邻居');
+    pkt.setAttribute('opacity', '1');
+    pkt.setAttribute('transform', 'translate(100,50)');
+    requestAnimationFrame(() => pkt.setAttribute('transform', 'translate(500,50)'));
+    await new Promise(r => setTimeout(r, 600));
+    setStatus('2-Way', 'R2 收到并回应', 'R2 确认 R1，双方互认');
+    nodeR2.classList.add('active');
+    await new Promise(r => setTimeout(r, 600));
+    setStatus('Full', '邻居关系已建立', 'R1 与 R2 成功同步数据库');
+  });
+  reset.addEventListener('click', () => {
+    nodeR2.classList.remove('active');
+    pkt.setAttribute('opacity', '0');
+    setStatus('Down', 'R1 和 R2 还没收到 Hello 包', 'R1 和 R2 还没收到 Hello 包');
+  });
+})();
+</script>
+</body>
+</html>

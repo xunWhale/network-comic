@@ -4,7 +4,7 @@ import sys
 from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).parent
-PAGES = ("index.html", "arp.html")
+PAGES = ("index.html", "arp.html", "ospf.html")
 WIDTHS = (1440, 900, 390)
 
 JS = r"""
