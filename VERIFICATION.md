@@ -55,3 +55,16 @@ ALL PAGE CHECKS PASSED
 - 拓扑图内 Area 0 / Area 1 虚线框、五个路由器节点、三台 PC、两条网段标签均无重叠或越界
 - 三部分正文（两条铁律 / 完整配置 / DR-BDR）代码块横向可滚动，卡片间距一致
 - 手机端导航折成多行但仍在一屏内，无横向滚动
+
+## 5. 线上核验（GitHub Pages）
+构建状态 `built`，提交 `4f94db4`。五页均返回 HTTP/2 200：
+
+```text
+/               -> HTTP/2 200
+/arp.html       -> HTTP/2 200
+/ospf.html      -> HTTP/2 200
+/lab.html       -> HTTP/2 200
+/ospf-multi.html -> HTTP/2 200
+```
+
+第五弹链接已发到 QQ 群「ikun之家2.0」（2026-11-18 12:42）。截至 2026-11-18 17:05，暂无群友回复。
