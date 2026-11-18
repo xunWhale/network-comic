@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多区域 OSPF：ABR、骨干区与 DR 选举 · 小鲸鱼的数通小剧场</title>
+<style>
+:root{
+  --ink:#10243d;--muted:#557089;--paper:#f5f9fb;--white:#fff;--deep:#071d35;--deep-2:#0d3152;
+  --blue:#1d6fa5;--mint:#31c7a1;--mint-dark:#087968;--yellow:#ffc95a;--coral:#ff816f;--line:#d8e6ed;
+  --soft-blue:#e8f3f8;--soft-mint:#e4f7f1;--soft-yellow:#fff3d6;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Noto Sans SC","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);background:var(--paper);font-family:var(--font);font-size:16px;line-height:1.75;overflow-x:hidden}
+button,input{font:inherit}a{color:inherit}:focus-visible{outline:3px solid var(--yellow);outline-offset:3px}
+.topbar{position:sticky;top:0;z-index:20;min-height:64px;background:rgba(7,29,53,.96);backdrop-filter:blur(8px);color:white;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px max(22px,calc((100% - 1180px)/2));border-bottom:1px solid rgba(255,255,255,.13)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.02em;white-space:nowrap;flex-shrink:0}
+.brand-mark{width:31px;height:31px;border-radius:10px;background:var(--mint);display:grid;place-items:center;color:var(--deep);font-weight:900;flex-shrink:0}
+.nav{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.nav a{font-size:14px;text-decoration:none;color:#c9d9e5;padding:8px 11px;border-radius:8px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;transition:background .15s,color .15s}
+.nav a:hover{background:#164466;color:white}
+.nav a.nav-pill{background:rgba(49,199,161,.15);color:#8af0d5;border:1px solid rgba(49,199,161,.32)}
+.nav a.nav-pill:hover{background:rgba(49,199,161,.26);color:white}
+.hero{background:var(--deep);color:#f8fcff;overflow:hidden;position:relative}
+.hero:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 78% 25%,rgba(49,199,161,.18),transparent 28%),radial-gradient(circle at 20% 0%,rgba(45,146,204,.22),transparent 38%);pointer-events:none}
+.hero-inner{position:relative;max-width:1180px;margin:auto;padding:64px 24px 56px;display:grid;grid-template-columns:1fr 1.15fr;gap:38px;align-items:center}
+.kicker{color:var(--yellow);font-size:14px;font-weight:700;margin-bottom:14px}
+.hero h1{font-size:clamp(34px,4.6vw,56px);line-height:1.15;letter-spacing:-.03em;margin:0 0 20px;max-width:600px;text-wrap:balance}
+.hero h1 span{color:var(--mint);white-space:nowrap}
+.hero-lede{color:#d3e5ee;font-size:18px;max-width:540px;margin:0 0 28px}
+.demo-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.primary,.secondary{min-height:48px;border-radius:10px;padding:0 18px;cursor:pointer;font-weight:850;transition:transform .15s,background .15s}
+.primary{background:var(--mint);color:#073a39;border:0}.primary:hover{background:#47dab3;transform:translateY(-1px)}
+.secondary{background:transparent;color:#d6e9f2;border:1px solid rgba(255,255,255,.35)}.secondary:hover{background:rgba(255,255,255,.08)}
+.status{color:#d6e9f2;font-size:14px;display:inline-flex;align-items:center;gap:8px;margin-top:12px}
+.status::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--mint);flex:none}
+.station{background:#0c2a48;border:1px solid rgba(164,220,229,.22);border-radius:20px;padding:18px 20px}
+.station-head{display:flex;justify-content:space-between;align-items:center;color:#9cc2d5;font-size:13px;margin-bottom:10px;gap:10px}
+.stage-badge{padding:2px 10px;border-radius:999px;background:#13395e;border:1px solid rgba(164,220,229,.24);color:#cde8f5;font-size:12px;font-weight:700;white-space:nowrap}
+.stage-badge.live{background:#12443c;border-color:rgba(49,199,161,.55);color:#73f2cd}
+.station-screen{background:#071a2d;border:1px solid rgba(164,220,229,.18);border-radius:14px;padding:12px 14px 14px}
+.topo-svg{width:100%;height:auto;display:block}
+.log{border-top:1px solid rgba(255,255,255,.12);padding-top:10px;margin-top:8px;display:grid;gap:6px}
+.log-row{display:flex;gap:10px;align-items:flex-start;color:#c2d9e6;font-size:13px;line-height:1.45}.log-row b{color:#f6fbff;font-weight:600;white-space:nowrap;flex-shrink:0}
+.log-dot{width:7px;height:7px;border-radius:50%;background:#5a7990;flex:none;margin-top:6px}.log-row.live .log-dot{background:var(--mint)}
+.cache-bar{margin-top:10px;padding:9px 12px;border-radius:10px;background:#0f2e4d;border:1px solid rgba(164,220,229,.2);display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:#a7c5d8;font-family:var(--mono);transition:all .25s ease;flex-wrap:wrap}
+.cache-bar.lit{background:#12443c;border-color:#31c7a1;color:#d7fff3}.cache-bar b{color:#fff;font-family:var(--font)}
+.ospf-link{stroke:#2a5273;stroke-width:3.5;stroke-linecap:round;transition:stroke .25s ease,stroke-width .25s ease}
+.ospf-link.hello{stroke:var(--yellow);stroke-width:4.5}.ospf-link.full{stroke:var(--mint);stroke-width:4.5}
+.r-node rect{fill:#143c5e;stroke:#477a9b;stroke-width:2;transition:fill .25s,stroke .25s}
+.r-node.active rect{fill:#1a4f78;stroke:#ffc95a}.r-node.full rect{fill:#114a42;stroke:var(--mint);stroke-width:2.5}
+#ospfPackets g{transition:transform .55s cubic-bezier(.4,0,.2,1),opacity .2s ease}
+main{max-width:1180px;margin:0 auto;padding:24px 24px 70px}.section{padding:56px 0 22px}
+.section-head{display:grid;grid-template-columns:150px minmax(0,1fr);gap:26px;align-items:start;margin-bottom:24px}
+.chapter{border-top:3px solid var(--blue);padding-top:10px;font-weight:700;color:var(--ink)}
+.section h2{font-size:clamp(26px,3.8vw,42px);line-height:1.2;letter-spacing:-.025em;margin:0 0 10px;text-wrap:balance}
+.section-intro{margin:0;color:var(--muted);max-width:680px;line-height:1.8}
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;min-width:0}
+.panel.soft-blue{background:var(--soft-blue)}.panel.soft-mint{background:var(--soft-mint)}.panel.soft-yellow{background:var(--soft-yellow)}
+.panel h3{font-size:20px;line-height:1.35;margin:0 0 10px}.panel p{margin:0;color:var(--muted);line-height:1.75}
+.tag{display:inline-flex;align-self:flex-start;border-radius:999px;padding:4px 11px;font-size:13px;font-weight:750;background:#e1edf3;color:#2f5b76;margin-bottom:12px}
+.tag.mint{background:#c9f0e5;color:#056b5e}.tag.yellow{background:#ffe8aa;color:#856000}.tag.coral{background:#ffe0da;color:#94402f}
+.scene{border-radius:15px;background:#eaf5f8;border:1px solid #cfe6eb;overflow:hidden;margin-bottom:16px;display:flex;flex-direction:column}
+.scene.dark{background:#0c2b48;border-color:#235071;color:white}.scene-svg{width:100%;height:auto;display:block}
+.scene-caption{padding:10px 15px 12px;font-size:13px;color:#4e7086;border-top:1px solid rgba(30,105,140,.1);background:rgba(255,255,255,.45)}
+.scene.dark .scene-caption{color:#b3cfdd;border-top-color:rgba(164,220,229,.12);background:rgba(7,26,45,.42)}
+.mini-table{font-size:14px;border:1px solid #c9dfe7;border-radius:12px;overflow:hidden;background:white;margin:8px 0 14px}
+.mini-row{display:grid;grid-template-columns:.85fr 1.15fr 1.1fr;gap:8px;padding:10px 12px;border-bottom:1px solid #e0edf1}
+.mini-row:last-child{border-bottom:0}.mini-row.head{background:#eff7fa;color:#4a7184;font-weight:700;font-size:12px}.mini-row.highlight{background:#e2f8f1;color:#086e60;font-weight:750}
+.answer{margin-top:auto;padding-top:14px}
+.answer-box{border-radius:12px;padding:12px 14px;background:#f3f8fa;border:1px solid #dce9ef;color:#345970;font-size:14px;line-height:1.65}
+.answer-box.mint{background:#eaf7f4;border-color:#c6e9df}.answer-box.yellow{background:#fff8e6;border-color:#f3dea5;color:#6c5012}.answer-box strong{color:var(--ink)}
+.pitfall{display:flex;gap:12px;align-items:flex-start;background:#fff0ec;border:1px solid #ffd0c7;border-radius:14px;padding:15px;margin-bottom:12px}
+.pitfall-mark{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#c64f3d;color:white;font-weight:900;flex:none}
+.pitfall.ok{background:#eaf7f4;border-color:#c6e9df}.pitfall.ok .pitfall-mark{background:var(--mint-dark)}
+.codebox{font-family:var(--mono);font-size:13.5px;line-height:1.8;background:#0b223b;color:#e7f6ff;border-radius:14px;padding:16px;overflow-x:auto;margin:6px 0 12px;max-width:100%}
+.codebox .yellow{color:var(--yellow)}.codebox .mint{color:#73e4c8}.codebox .dim{color:#89a9be}
+.calc-box{background:#f7fbfd;border:1px solid #c8e0e8;border-radius:14px;padding:14px 16px;margin:8px 0 14px}
+.calc-presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.preset-btn{border:1px solid #bdd7e3;background:#fff;color:#1d4e6f;border-radius:8px;padding:5px 11px;font-size:13px;font-weight:750;cursor:pointer}
+.preset-btn.active{background:#0b2a47;color:#73f2cd;border-color:#0b2a47}
+.calc-inputs{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;margin-bottom:12px}
+.calc-field label{display:block;font-size:12px;font-weight:700;color:#4a7184;margin-bottom:4px}
+.calc-field input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #bdd7e3;font-family:var(--mono);font-size:14px;color:var(--ink)}
+.calc-out{background:#0b223b;color:#e7f6ff;border-radius:10px;padding:12px 14px;font-family:var(--mono);font-size:13px;line-height:1.75}
+.calc-out .hl{color:var(--yellow);font-weight:700}.calc-out .ok{color:#73f2cd;font-weight:700}
+.footer{background:var(--deep);color:#b9cfdd;padding:40px 24px}.footer-inner{max-width:1180px;margin:auto;display:flex;justify-content:space-between;gap:24px;align-items:flex-end}
+.footer strong{color:white;font-size:18px}.footer p{margin:7px 0 0;font-size:14px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px}.legend span{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}.legend .req{background:var(--yellow)}.legend .rep{background:var(--mint)}.legend .storm{background:var(--coral)}
+@media(max-width:960px){.hero-inner{grid-template-columns:1fr;padding:48px 20px 38px;gap:28px}.section-head{grid-template-columns:1fr;gap:8px}.chapter{padding:8px 0 0}}
+@media(max-width:760px){.topbar{flex-direction:column;align-items:flex-start;padding:10px 16px;gap:8px}.nav{width:100%;justify-content:flex-start;gap:6px}.nav a{padding:6px 10px;font-size:13px;min-height:36px}.grid-2,.calc-inputs{grid-template-columns:1fr}.footer-inner{display:block}.legend{margin-top:18px}}
+@media(max-width:480px){body{font-size:15px}.hero-inner{padding:38px 16px 34px}.hero h1{font-size:32px}.hero-lede{font-size:16px}.station{padding:14px}.station-screen{padding:10px 8px 12px}main{padding:18px 16px 56px}.section{padding:40px 0 16px}.panel{padding:17px}.scene-caption{font-size:12px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}.primary:hover{transform:none}}
+
+.mode-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.mode-btn{border:1px solid #3c6d91;background:rgba(12,43,72,.82);color:#d7ebf7;border-radius:10px;padding:9px 14px;font-size:13.5px;font-weight:750;cursor:pointer;transition:.15s}
+.mode-btn:hover{background:#164466;color:#fff}
+.mode-btn.active{background:var(--yellow);color:#13212c;border-color:var(--yellow)}
+.mode-btn.danger.active{background:var(--coral);color:#180907;border-color:var(--coral)}
+.diag-card{margin-top:12px;border-radius:12px;padding:12px 14px;background:rgba(10,33,56,.88);border:1px solid #2b5b7d;font-size:13.5px;line-height:1.65;color:#cfe4f2}
+.diag-card strong{color:var(--yellow)}
+.diag-card.err strong{color:#ff9e8a}
+.diag-card.ok strong{color:#73f2cd}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">鲸</span><span>小鲸鱼的数通小剧场</span></div>
+  <nav class="nav" aria-label="章节导航">
+    <a class="nav-pill" href="index.html">第一弹：路由</a>
+    <a class="nav-pill" href="arp.html">第二弹：ARP</a>
+    <a class="nav-pill" href="ospf.html">第三弹：OSPF</a>
+    <a class="nav-pill" href="lab.html">第四弹：三机排错</a>
+    <a href="#topology">拓扑</a>
+    <a href="#areas">多区域</a>
+    <a href="#config">配置</a>
+    <a href="#drbdr">DR/BDR</a>
+  </nav>
+</header>
+<section class="hero" id="demo">
+  <div class="hero-inner">
+    <div>
+      <div class="kicker">第五弹 · 多区域 OSPF 与 ABR 实战</div>
+      <h1>一个骨干区，<span>两个非骨干区</span>，谁来翻译？</h1>
+      <p class="hero-lede">三台 PC 分在三个网段，路由器分在两个 OSPF 区域。点下面的按钮，看清楚 AR2 这台 ABR 到底在哪一侧宣告什么网段，以及为什么三台 PC 最后能互通。</p>
+      <div class="mode-tabs" role="tablist" aria-label="多区域模式切换">
+        <button class="mode-btn active" data-mode="all">整网互通</button>
+        <button class="mode-btn" data-mode="area0">只看 Area 0</button>
+        <button class="mode-btn" data-mode="area1">只看 Area 1</button>
+        <button class="mode-btn danger" data-mode="wrong">翻车：ABR 少进一个区</button>
+      </div>
+      <span class="status" id="modStatus" aria-live="polite">AR2 同时属于 Area 0 和 Area 1，把 192.168.1.0/24 转告 Area 1，把 192.168.2.0/24 和 192.168.3.0/24 转告 Area 0，三台 PC 互通</span>
+      <div class="diag-card ok" id="modDiag"><strong>核心：</strong>ABR 必须在骨干区 Area 0 里有至少一个<strong>完全建邻</strong>的接口，否则它转发的跨区路由会被拒绝。</div>
+    </div>
+    <div class="station">
+      <div class="station-head">
+        <span>eNSP 多区域拓扑 · Area 0 / Area 1</span>
+        <span class="badge" id="modBadge">三网段互通</span>
+      </div>
+      <div class="station-screen">
+        <svg viewBox="0 0 660 330" class="scene-svg" aria-label="PC1-AR1-AR2-AR3/AR4 多区域 OSPF 拓扑图">
+          <rect id="area0Box" x="12" y="24" width="286" height="250" rx="16" fill="#31c7a1" fill-opacity="0.07" stroke="#31c7a1" stroke-width="2" stroke-dasharray="7 5"/>
+          <text x="30" y="46" fill="#73f2cd" font-size="12" font-weight="750">area 0（骨干 · P2P）</text>
+          <rect id="area1Box" x="300" y="24" width="348" height="250" rx="16" fill="#ffcb47" fill-opacity="0.06" stroke="#ffcb47" stroke-width="2" stroke-dasharray="7 5"/>
+          <text x="318" y="46" fill="#ffcb47" font-size="12" font-weight="750">area 1（MA · 多路访问）</text>
+          <line id="l1" x1="88" y1="150" x2="128" y2="150" stroke="#31c7a1" stroke-width="4"/>
+          <line id="l2a" x1="184" y1="150" x2="214" y2="150" stroke="#31c7a1" stroke-width="4" stroke-dasharray="7 4"/>
+          <line id="l2b" x1="266" y1="150" x2="306" y2="150" stroke="#ffcb47" stroke-width="4" stroke-dasharray="7 4"/>
+          <line id="l3" x1="346" y1="150" x2="396" y2="150" stroke="#ffcb47" stroke-width="4"/>
+          <line id="l4" x1="418" y1="130" x2="446" y2="100" stroke="#ffcb47" stroke-width="4"/>
+          <line id="l5" x1="418" y1="170" x2="446" y2="200" stroke="#ffcb47" stroke-width="4"/>
+          <line id="l6" x1="502" y1="78" x2="566" y2="78" stroke="#ffcb47" stroke-width="4"/>
+          <line id="l7" x1="502" y1="222" x2="566" y2="222" stroke="#ffcb47" stroke-width="4"/>
+          <rect x="16" y="132" width="72" height="52" rx="11" fill="#133d63" stroke="#53a4ce" stroke-width="2"/>
+          <text x="52" y="155" text-anchor="middle" fill="#fff" font-size="13" font-weight="800">PC1</text>
+          <text x="52" y="172" text-anchor="middle" fill="#9fd0e6" font-size="10.5" font-family="ui-monospace, monospace">.1.10/24</text>
+          <circle cx="156" cy="150" r="27" fill="#133d63" stroke="#31c7a1" stroke-width="2.5"/>
+          <text x="156" y="148" text-anchor="middle" fill="#fff" font-size="13" font-weight="800">AR1</text>
+          <text x="156" y="164" text-anchor="middle" fill="#73f2cd" font-size="10" font-family="ui-monospace, monospace">.1.254</text>
+          <circle cx="240" cy="150" r="29" fill="#133d63" stroke="#ffcb47" stroke-width="3"/>
+          <text x="240" y="146" text-anchor="middle" fill="#fff" font-size="13" font-weight="800">AR2</text>
+          <text x="240" y="162" text-anchor="middle" fill="#ffcb47" font-size="9.5" font-weight="750">ABR</text>
+          <rect x="398" y="132" width="60" height="36" rx="8" fill="#133d63" stroke="#53a4ce" stroke-width="2"/>
+          <text x="428" y="155" text-anchor="middle" fill="#fff" font-size="11.5" font-weight="800">LSW1</text>
+          <circle cx="474" cy="78" r="27" fill="#133d63" stroke="#31c7a1" stroke-width="2.5"/>
+          <text x="474" y="76" text-anchor="middle" fill="#fff" font-size="13" font-weight="800">AR3</text>
+          <text x="474" y="92" text-anchor="middle" fill="#73f2cd" font-size="10" font-family="ui-monospace, monospace">.2.254</text>
+          <circle cx="474" cy="222" r="27" fill="#133d63" stroke="#31c7a1" stroke-width="2.5"/>
+          <text x="474" y="220" text-anchor="middle" fill="#fff" font-size="13" font-weight="800">AR4</text>
+          <text x="474" y="236" text-anchor="middle" fill="#73f2cd" font-size="10" font-family="ui-monospace, monospace">.3.254</text>
+          <rect x="566" y="56" width="72" height="44" rx="11" fill="#133d63" stroke="#53a4ce" stroke-width="2"/>
+          <text x="602" y="76" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="800">PC2</text>
+          <text x="602" y="91" text-anchor="middle" fill="#9fd0e6" font-size="10" font-family="ui-monospace, monospace">.2.10</text>
+          <rect x="566" y="200" width="72" height="44" rx="11" fill="#133d63" stroke="#53a4ce" stroke-width="2"/>
+          <text x="602" y="220" text-anchor="middle" fill="#fff" font-size="12.5" font-weight="800">PC3</text>
+          <text x="602" y="235" text-anchor="middle" fill="#9fd0e6" font-size="10" font-family="ui-monospace, monospace">.3.10</text>
+          <text x="96" y="196" fill="#89b8d4" font-size="9.5" font-family="ui-monospace, monospace">10.0.12.0/24</text>
+          <text x="330" y="196" fill="#89b8d4" font-size="9.5" font-family="ui-monospace, monospace">10.0.234.0/24</text>
+          <text x="318" y="292" fill="#9fd0e6" font-size="10">AR1↔AR2 串口；AR2/AR3/AR4 同挂 LSW1（纯二层，不配 IP）</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<main>
+  <section class="section" id="areas">
+    <div class="section-head">
+      <div class="chapter">第一部分 · 为什么要分区</div>
+      <div>
+        <h2>OSPF 分区的两条铁律：非骨干区域必须挂在 Area 0 上</h2>
+        <p class="section-lede">单个区域里每台路由器都要算整张拓扑。区域一大，LSDB 爆炸、SPF 重算频繁。分区就是「把一个大地图切成几个小地图，只在边界交换摘要」。</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel soft-mint">
+        <span class="tag mint">铁律一 · 骨干区不可少</span>
+        <h3>Area 0 是中枢，所有区域间的流量都从它过</h3>
+        <p>非骨干区域之间<strong>不允许直接交换 LSA</strong>。Area 1 要知道 Area 2 的路由，必须经 ABR 转成 Type-3 摘要，再由骨干区带过去。</p>
+        <div class="mini-table">
+          <div class="mini-row head"><span>路由器</span><span>角色</span><span>接口所在区</span></div>
+          <div class="mini-row"><span>AR1</span><span>内部路由器（IR）</span><span>Area 0</span></div>
+          <div class="mini-row highlight"><span>AR2</span><span>区域边界路由器（ABR）</span><span>Area 0 + Area 1</span></div>
+          <div class="mini-row"><span>AR3 / AR4</span><span>内部路由器（IR）</span><span>Area 1</span></div>
+        </div>
+      </article>
+      <article class="panel soft-yellow">
+        <span class="tag yellow">铁律二 · ABR 要有骨干连接</span>
+        <h3>ABR 必须在 Area 0 里建过邻，否则跨区路由被拒</h3>
+        <p>ABR 的门槛不是「配置里写了 area 0」，而是<strong>在 Area 0 里至少有一个 Full 状态的邻居</strong>。没有这条虚拟连接，它发出的 Type-3 会被骨干区路由器丢弃。</p>
+        <div class="pitfall">
+          <span class="pitfall-mark">!</span>
+          <div><strong>常见翻车：</strong>把 AR2 的两个接口都塞进 Area 1，再指望它转告 Area 0 的路由 —— 它此时只是个 IR，转不动。</div>
+        </div>
+        <div class="answer-box mint"><strong>口诀：</strong>一台路由器属于哪个区，是<strong>按接口</strong>算的，不是按设备算的。</div>
+      </article>
+    </div>
+  </section>
+  <section class="section" id="config">
+    <div class="section-head">
+      <div class="chapter">第二部分 · 完整命令</div>
+      <div>
+        <h2>照着这张拓扑抄：四台路由器怎么宣告</h2>
+        <p class="section-lede">先配接口 IP 和 PC 网关，再按下面的顺序进 OSPF。注意 AR2 要<strong>分两次进 area</strong>，这是唯一和单区域写法不同的一台。</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel">
+        <span class="tag mint">左侧 · Area 0</span>
+        <h3>AR1：只属于骨干区</h3>
+        <pre class="codebox"><span class="dim"># 接口与网关</span>
+[AR1] interface GigabitEthernet0/0/0
+[AR1-GigabitEthernet0/0/0] <span class="mint">ip address 192.168.1.254 24</span>
+[AR1] interface Serial4/0/0
+[AR1-Serial4/0/0] <span class="mint">ip address 10.0.12.1 24</span>
+
+<span class="dim"># OSPF：两个直连网段都进 area 0</span>
+[AR1] ospf 1 router-id 1.1.1.1
+[AR1-ospf-1] area 0
+[AR1-ospf-1-area-0.0.0.0] <span class="yellow">network 192.168.1.0 0.0.0.255</span>
+[AR1-ospf-1-area-0.0.0.0] <span class="yellow">network 10.0.12.0 0.0.0.255</span></pre>
+        <p>PC1 网关填 <code>192.168.1.254</code>。</p>
+      </article>
+      <article class="panel">
+        <span class="tag yellow">中间 · ABR</span>
+        <h3>AR2：左边进 0，右边进 1</h3>
+        <pre class="codebox"><span class="dim"># 接口</span>
+[AR2] interface Serial4/0/0
+[AR2-Serial4/0/0] <span class="yellow">ip address 10.0.12.2 24</span>
+[AR2] interface GigabitEthernet0/0/0
+[AR2-GigabitEthernet0/0/0] <span class="yellow">ip address 10.0.234.1 24</span>
+
+<span class="dim"># 关键：两次 area，各宣告各的</span>
+[AR2] ospf 1 router-id 2.2.2.2
+[AR2-ospf-1] area 0
+[AR2-ospf-1-area-0.0.0.0] <span class="mint">network 10.0.12.0 0.0.0.255</span>
+[AR2-ospf-1] area 1
+[AR2-ospf-1-area-0.0.0.1] <span class="mint">network 10.0.234.0 0.0.0.255</span></pre>
+        <p><strong>不要</strong>把 10.0.12.0 和 10.0.234.0 写进同一个 area。</p>
+      </article>
+    </div>
+  </section>
+  <section class="section" id="drbdr">
+    <div class="section-head">
+      <div class="chapter">第三部分 · MA 网络里的 DR/BDR</div>
+      <div>
+        <h2>三台路由器挂在同一个交换机上，谁跟谁建邻？</h2>
+        <p class="section-lede">Area 1 这段是多路访问（MA）网络：AR2、AR3、AR4 都在 <code>10.0.234.0/24</code> 里。如果不选 DR，三台两两建邻就要 3 条邻接；四台要 6 条，八台要 28 条。</p>
+      </div>
+    </div>
+    <div class="grid-2">
+      <article class="panel soft-blue">
+        <span class="tag">选举规则</span>
+        <h3>先比优先级，再比 Router-ID</h3>
+        <div class="mini-table">
+          <div class="mini-row head"><span>比较项</span><span>默认值</span><span>结果</span></div>
+          <div class="mini-row highlight"><span>接口优先级</span><span>1</span><span>大者当选 DR</span></div>
+          <div class="mini-row"><span>Router-ID</span><span>手工配置</span><span>优先级相同时大者胜</span></div>
+          <div class="mini-row"><span>优先级 0</span><span>—</span><span>放弃参选</span></div>
+        </div>
+        <p>在我们的图里：AR2 的 RID 是 2.2.2.2，AR3 是 3.3.3.3，AR4 是 4.4.4.4，优先级都是默认 1 —— 于是 <strong>AR4 当 DR，AR3 当 BDR，AR2 是 DROther</strong>。</p>
+      </article>
+      <article class="panel soft-mint">
+        <span class="tag mint">验证与调优</span>
+        <h3>看邻居状态，必要时手动指定</h3>
+        <pre class="codebox"><span class="dim"># 看邻居关系：DROther 之间是 2-Way，其它是 Full</span>
+[AR2] <span class="mint">display ospf peer brief</span>
+
+<span class="dim"># 手动让 AR2 当 DR（优先级调大）</span>
+[AR2] interface GigabitEthernet0/0/0
+[AR2-GigabitEthernet0/0/0] <span class="yellow">ospf dr-priority 100</span>
+
+<span class="dim"># 改完要重启 OSPF 进程才会重新选举</span>
+[AR2] <span class="yellow">reset ospf process</span></pre>
+        <p><strong>注意：</strong>DR 选举不是抢占式的。调完优先级后，只有重启进程或邻居重建才会重新选。</p>
+      </article>
+    </div>
+    <div class="pitfall ok">
+      <span class="pitfall-mark">✓</span>
+      <div><strong>三台 PC 互通的判定顺序：</strong>① 每台 PC 网关填对 → ② Area 0 里 AR1↔AR2 是 Full → ③ Area 1 里 AR2/AR3/AR4 邻居起来 → ④ <code>display ip routing-table</code> 在 AR1 上能看到 .2.0 和 .3.0 两条 OSPF 路由 → ⑤ PC1 ping PC2、PC3 都通。</div>
+    </div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <strong>小鲸鱼的数通小剧场 · 第五弹</strong>
+      <p>从真实 eNSP 多区域提问提炼 · 纯内联 SVG · 骨干区 / ABR / DR 选举</p>
+    </div>
+    <div class="legend">
+      <span><i class="rep"></i>Area 0（骨干）</span>
+      <span><i class="req"></i>Area 1（非骨干）</span>
+      <span><i class="storm"></i>跨区中断</span>
+    </div>
+  </div>
+</footer>
+<script>
+const C = { a0: "#31c7a1", a1: "#ffcb47", dim: "#3b6582", bad: "#ff7b61" };
+const LINKS = ["l1", "l2a", "l2b", "l3", "l4", "l5", "l6", "l7"];
+const MODES = {
+  all: {
+    badge: "三网段互通",
+    status: "AR2 同时属于 Area 0 和 Area 1，把 192.168.1.0/24 转告 Area 1，把 192.168.2.0/24 和 192.168.3.0/24 转告 Area 0，三台 PC 互通",
+    cls: "diag-card ok",
+    diag: "<strong>核心：</strong>ABR 必须在骨干区 Area 0 里有至少一个<strong>完全建邻</strong>的接口，否则它转发的跨区路由会被拒绝。",
+    colors: { l1: C.a0, l2a: C.a0, l2b: C.a1, l3: C.a1, l4: C.a1, l5: C.a1, l6: C.a1, l7: C.a1 },
+    box: { area0Box: 1, area1Box: 1 },
+    mark: false,
+  },
+  area0: {
+    badge: "Area 0 视角",
+    status: "骨干区里只有 AR1 和 AR2 的一对串口。AR2 在这里是普通路由器，靠它把外部网段摘要带进来",
+    cls: "diag-card",
+    diag: "<strong>Area 0 的职责：</strong>承载所有跨区摘要。AR1 会把 192.168.2.0/24 和 .3.0/24 记成 OSPF 路由，下一跳指向 AR2。",
+    colors: { l1: C.a0, l2a: C.a0, l2b: C.dim, l3: C.dim, l4: C.dim, l5: C.dim, l6: C.dim, l7: C.dim },
+    box: { area0Box: 1, area1Box: 0.22 },
+    mark: false,
+  },
+  area1: {
+    badge: "Area 1 视角",
+    status: "Area 1 是多路访问网络：AR2、AR3、AR4 挂在同一台二层交换机上，先选 DR/BDR 再同步 LSDB",
+    cls: "diag-card",
+    diag: "<strong>Area 1 的职责：</strong>局部拓扑不外泄。AR3、AR4 只知道 192.168.1.0/24 是一条从 AR2 来的 Type-3 摘要，看不见骨干区里到底有几台路由器。",
+    colors: { l1: C.dim, l2a: C.dim, l2b: C.a1, l3: C.a1, l4: C.a1, l5: C.a1, l6: C.a1, l7: C.a1 },
+    box: { area0Box: 0.22, area1Box: 1 },
+    mark: false,
+  },
+  wrong: {
+    badge: "跨区中断",
+    status: "翻车：AR2 两个接口都塞进 Area 1，它不再是 ABR，Area 1 拿不到 192.168.1.0/24",
+    cls: "diag-card err",
+    diag: "<strong>排错：</strong>AR2 此时只是 Area 1 的内部路由器，转不动跨区路由。修法是把接 AR1 的串口重新宣告进 area 0。",
+    colors: { l1: C.dim, l2a: C.bad, l2b: C.bad, l3: C.dim, l4: C.dim, l5: C.dim, l6: C.dim, l7: C.dim },
+    box: { area0Box: 0.85, area1Box: 1 },
+    mark: true,
+  },
+};
+
+const btns = document.querySelectorAll(".mode-btn");
+const svg = document.querySelector("#demo svg");
+let mark = null;
+
+function ensureMark() {
+  if (mark) return mark;
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  g.setAttribute("transform", "translate(240,150)");
+  g.innerHTML =
+    '<circle cx="0" cy="0" r="22" fill="#ff7b61" fill-opacity="0.22" stroke="#ff7b61" stroke-width="2.5"/>'
+    + '<line x1="-10" y1="-10" x2="10" y2="10" stroke="#ff7b61" stroke-width="4" stroke-linecap="round"/>'
+    + '<line x1="10" y1="-10" x2="-10" y2="10" stroke="#ff7b61" stroke-width="4" stroke-linecap="round"/>';
+  svg.appendChild(g);
+  mark = g;
+  return g;
+}
+
+btns.forEach((btn) => btn.addEventListener("click", () => {
+  btns.forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  const m = MODES[btn.dataset.mode];
+  document.getElementById("modBadge").textContent = m.badge;
+  document.getElementById("modStatus").textContent = m.status;
+  const d = document.getElementById("modDiag");
+  d.className = m.cls;
+  d.innerHTML = m.diag;
+  LINKS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute("stroke", m.colors[id]);
+  });
+  document.getElementById("area0Box").setAttribute("opacity", String(m.box.area0Box));
+  document.getElementById("area1Box").setAttribute("opacity", String(m.box.area1Box));
+  const g = ensureMark();
+  g.setAttribute("opacity", m.mark ? "1" : "0");
+}));
+</script>
+</body>
+</html>
